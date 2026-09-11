@@ -1,0 +1,528 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>退休倒數計畫</title>
+  <link rel="stylesheet" href="./style.css">
+</head>
+
+<body>
+
+<div class="app">
+
+  <!-- Header -->
+  <header class="header">
+    <div>
+      <div class="brand">
+        <span class="brand-icon">🌱</span>
+        <div>
+          <h1>退休倒數計畫</h1>
+          <p>把人生自由，變成可以計算的數字</p>
+        </div>
+      </div>
+    </div>
+
+    <button class="save-btn" id="saveBtn">💾 儲存</button>
+  </header>
+
+
+  <!-- 總資產 -->
+  <section class="hero-card">
+
+    <div class="hero-label">目前總資產</div>
+
+    <div class="hero-value" id="totalAssets">
+      NT$ 0
+    </div>
+
+    <div class="hero-sub">
+      距離目前選擇的退休目標
+    </div>
+
+    <div class="progress-title">
+      <strong>退休資產達成率</strong>
+      <strong id="progressPercent">0%</strong>
+    </div>
+
+    <div class="progress">
+      <div class="progress-bar" id="progressBar"></div>
+    </div>
+
+    <div class="progress-bottom">
+      <span>目前資產 <strong id="progressCurrent">NT$ 0</strong></span>
+      <span>退休目標 <strong id="progressTarget">NT$ 0</strong></span>
+    </div>
+
+  </section>
+
+
+  <!-- 01 我的退休目標 -->
+  <section class="card">
+
+    <div class="section-title">
+      <div class="section-number">01</div>
+      <div>
+        <h2>我的退休目標</h2>
+        <p>先選擇你想達成的人生階段</p>
+      </div>
+    </div>
+
+
+    <div class="goal-grid">
+
+      <button class="goal-card active" data-goal="full">
+
+        <div class="goal-icon">🏝️</div>
+
+        <div class="goal-content">
+          <strong>完全退休</strong>
+          <span>不再依靠工作收入</span>
+          <small>投資資產支應未來生活</small>
+        </div>
+
+        <div class="check">✓</div>
+
+      </button>
+
+
+      <button class="goal-card" data-goal="micro">
+
+        <div class="goal-icon">🌱</div>
+
+        <div class="goal-content">
+          <strong>微退休</strong>
+          <span>降低工作量、保有部分收入</span>
+          <small>例如：每月工作收入 NT$30,000</small>
+        </div>
+
+        <div class="check">✓</div>
+
+      </button>
+
+    </div>
+
+
+    <!-- 完全退休設定 -->
+    <div class="goal-setting" id="fullSetting">
+
+      <div class="setting-title">🏝️ 完全退休設定</div>
+
+      <div class="form-grid">
+
+        <label>
+          <span>目前年齡</span>
+          <input type="number" id="currentAge" value="33" min="18" max="100">
+          <small>歲</small>
+        </label>
+
+        <label>
+          <span>預計退休年齡</span>
+          <input type="number" id="fullRetireAge" value="55" min="18" max="100">
+          <small>歲</small>
+        </label>
+
+        <label>
+          <span>預估壽命</span>
+          <input type="number" id="lifeExpectancy" value="85" min="50" max="120">
+          <small>歲</small>
+        </label>
+
+        <label>
+          <span>每月基本生活費</span>
+          <input type="number" id="monthlyExpense" value="30000" min="0" step="1000">
+          <small>NT$ / 月</small>
+        </label>
+
+      </div>
+
+    </div>
+
+
+    <!-- 微退休設定 -->
+    <div class="goal-setting hidden" id="microSetting">
+
+      <div class="setting-title">🌱 微退休設定</div>
+
+      <div class="form-grid">
+
+        <label>
+          <span>目前年齡</span>
+          <input type="number" id="microCurrentAge" value="33" min="18" max="100">
+          <small>歲</small>
+        </label>
+
+        <label>
+          <span>預計微退休年齡</span>
+          <input type="number" id="microRetireAge" value="38" min="18" max="100">
+          <small>歲</small>
+        </label>
+
+        <label>
+          <span>微退休後每月工作收入</span>
+          <input type="number" id="microIncome" value="30000" min="0" step="1000">
+          <small>NT$ / 月</small>
+        </label>
+
+        <label>
+          <span>每月生活費</span>
+          <input type="number" id="microExpense" value="30000" min="0" step="1000">
+          <small>NT$ / 月</small>
+        </label>
+
+      </div>
+
+      <div class="info-box">
+        💡 微退休目標會自動計算「生活費 − 工作收入」後，
+        由投資資產需要補足的金額。
+      </div>
+
+    </div>
+
+  </section>
+
+
+  <!-- 02 我的資產 -->
+  <section class="card">
+
+    <div class="section-title">
+      <div class="section-number">02</div>
+      <div>
+        <h2>我的資產</h2>
+        <p>輸入你的現金、投資與定存</p>
+      </div>
+    </div>
+
+
+    <!-- 現金 -->
+    <div class="asset-group">
+
+      <div class="asset-group-header">
+
+        <div>
+          <span class="asset-group-icon">💵</span>
+          <strong>現金</strong>
+          <small>活儲、現金、高利活儲</small>
+        </div>
+
+        <div class="asset-group-total" id="cashTotal">
+          NT$ 0
+        </div>
+
+      </div>
+
+      <div id="cashList"></div>
+
+      <button class="add-btn" id="addCashBtn">
+        ＋ 新增現金
+      </button>
+
+    </div>
+
+
+    <!-- 投資 -->
+    <div class="asset-group">
+
+      <div class="asset-group-header">
+
+        <div>
+          <span class="asset-group-icon">📈</span>
+          <strong>投資</strong>
+          <small>台股、美股、ETF</small>
+        </div>
+
+        <div class="asset-group-total" id="investmentTotal">
+          NT$ 0
+        </div>
+
+      </div>
+
+      <div id="investmentList"></div>
+
+      <button class="add-btn" id="addInvestmentBtn">
+        ＋ 新增投資
+      </button>
+
+    </div>
+
+
+    <!-- 定存 -->
+    <div class="asset-group">
+
+      <div class="asset-group-header">
+
+        <div>
+          <span class="asset-group-icon">🏦</span>
+          <strong>定存</strong>
+          <small>台幣定存、外幣定存</small>
+        </div>
+
+        <div class="asset-group-total" id="depositTotal">
+          NT$ 0
+        </div>
+
+      </div>
+
+      <div id="depositList"></div>
+
+      <button class="add-btn" id="addDepositBtn">
+        ＋ 新增定存
+      </button>
+
+    </div>
+
+
+    <!-- 資產配置 -->
+    <div class="allocation">
+
+      <div class="sub-title">資產配置</div>
+
+      <div class="allocation-bar">
+        <div class="allocation-cash" id="allocationCash"></div>
+        <div class="allocation-investment" id="allocationInvestment"></div>
+        <div class="allocation-deposit" id="allocationDeposit"></div>
+      </div>
+
+      <div class="allocation-legend">
+
+        <span>
+          <i class="dot cash"></i>
+          現金 <b id="cashPercent">0%</b>
+        </span>
+
+        <span>
+          <i class="dot investment"></i>
+          投資 <b id="investmentPercent">0%</b>
+        </span>
+
+        <span>
+          <i class="dot deposit"></i>
+          定存 <b id="depositPercent">0%</b>
+        </span>
+
+      </div>
+
+    </div>
+
+  </section>
+
+
+  <!-- 03 退休生活 -->
+  <section class="card">
+
+    <div class="section-title">
+      <div class="section-number">03</div>
+
+      <div>
+        <h2>退休生活</h2>
+        <p>選擇你希望退休後的生活方式</p>
+      </div>
+    </div>
+
+
+    <div class="life-grid">
+
+      <button class="life-card active" data-life="stable">
+        <div class="life-icon">🌿</div>
+        <strong>安穩</strong>
+        <span>基本生活</span>
+        <small>不特別安排海外旅行</small>
+      </button>
+
+
+      <button class="life-card" data-life="happy">
+        <div class="life-icon">✈️</div>
+        <strong>小確幸</strong>
+        <span>每年 2～3 次旅行</span>
+        <small>主要前往亞洲</small>
+      </button>
+
+
+      <button class="life-card" data-life="luxury">
+        <div class="life-icon">✨</div>
+        <strong>豪華</strong>
+        <span>每年 3～6 次旅行</span>
+        <small>較高旅遊與娛樂預算</small>
+      </button>
+
+    </div>
+
+
+    <div class="lifestyle-result">
+
+      <div>
+        <span>目前生活模式</span>
+        <strong id="selectedLifestyle">🌿 安穩</strong>
+      </div>
+
+      <div>
+        <span>每年額外旅遊預算</span>
+        <strong id="travelBudget">NT$ 0</strong>
+      </div>
+
+    </div>
+
+  </section>
+
+
+  <!-- 04 退休計算 -->
+  <section class="card">
+
+    <div class="section-title">
+      <div class="section-number">04</div>
+
+      <div>
+        <h2>退休試算</h2>
+        <p>根據目前資料估算退休資產需求</p>
+      </div>
+    </div>
+
+
+    <div class="result-grid">
+
+      <div class="result-card">
+        <span>退休後每年需要</span>
+        <strong id="annualNeed">NT$ 0</strong>
+      </div>
+
+      <div class="result-card highlight">
+        <span>預估退休所需資產</span>
+        <strong id="retirementTarget">NT$ 0</strong>
+      </div>
+
+      <div class="result-card">
+        <span>目前還差</span>
+        <strong id="remainingTarget">NT$ 0</strong>
+      </div>
+
+      <div class="result-card">
+        <span>目前預計退休年齡</span>
+        <strong id="retirementAgeResult">55 歲</strong>
+      </div>
+
+    </div>
+
+
+    <div class="calculation-note">
+
+      <strong>📌 試算方式</strong>
+
+      <p>
+        本工具目前以「4% 提領率」作為退休資產需求的基礎假設。
+        實際退休規劃仍需考量通膨、投資報酬率、稅務及醫療支出。
+      </p>
+
+    </div>
+
+  </section>
+
+
+  <!-- 05 資產成長 -->
+  <section class="card">
+
+    <div class="section-title">
+      <div class="section-number">05</div>
+
+      <div>
+        <h2>資產成長預估</h2>
+        <p>看看持續投資後可能的資產變化</p>
+      </div>
+    </div>
+
+
+    <div class="form-grid projection-form">
+
+      <label>
+        <span>預估年報酬率</span>
+        <input type="number" id="annualReturn" value="6" step="0.5">
+        <small>%</small>
+      </label>
+
+      <label>
+        <span>每月新增投資</span>
+        <input type="number" id="monthlyInvestment" value="20000" step="1000">
+        <small>NT$ / 月</small>
+      </label>
+
+      <label>
+        <span>預估年數</span>
+        <input type="number" id="projectionYears" value="5" min="1" max="50">
+        <small>年</small>
+      </label>
+
+    </div>
+
+
+    <div class="projection-result">
+
+      <div class="projection-main">
+
+        <span id="projectionYearsText">5 年後預估資產</span>
+
+        <strong id="futureAssets">
+          NT$ 0
+        </strong>
+
+      </div>
+
+
+      <div class="projection-table">
+
+        <div class="projection-row header">
+          <span>年份</span>
+          <span>預估資產</span>
+          <span>距離退休目標</span>
+        </div>
+
+        <div id="projectionRows"></div>
+
+      </div>
+
+    </div>
+
+  </section>
+
+
+  <!-- 06 資料管理 -->
+  <section class="card">
+
+    <div class="section-title">
+      <div class="section-number">06</div>
+
+      <div>
+        <h2>資料管理</h2>
+        <p>你的資料會儲存在目前裝置</p>
+      </div>
+    </div>
+
+
+    <div class="data-actions">
+
+      <button class="secondary-btn" id="saveBtn2">
+        💾 儲存目前資料
+      </button>
+
+      <button class="secondary-btn danger" id="resetBtn">
+        ↻ 重設示範資料
+      </button>
+
+    </div>
+
+    <div class="save-status" id="saveStatus">
+      資料尚未修改
+    </div>
+
+  </section>
+
+
+  <footer>
+    退休倒數計畫 · UI/UX 測試版
+  </footer>
+
+</div>
+
+
+<script src="./script.js"></script>
+
+</body>
+</html>
