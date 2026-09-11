@@ -1083,3 +1083,85 @@ footer {
   }
 
 }
+/* =========================
+   定存摘要列
+========================= */
+
+.deposit-summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  cursor: pointer;
+  padding: 14px 16px;
+  border-radius: 12px;
+}
+
+.deposit-summary-info {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex: 1;
+  min-width: 0;
+  gap: 12px;
+}
+
+.deposit-display-name {
+  font-size: 16px;
+  font-weight: 700;
+  color: #263238;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.deposit-display-value {
+  font-size: 15px;
+  font-weight: 700;
+  color: #5f9f73;
+  white-space: nowrap;
+}
+
+.deposit-summary-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.deposit-toggle {
+  font-size: 12px;
+  color: #8b94a3;
+  width: 18px;
+  text-align: center;
+}
+
+.deposit-details {
+  padding-top: 4px;
+}
+
+.deposit-summary:hover {
+  background: #f7f9f8;
+}
+
+.deposit-summary .delete-asset {
+  cursor: pointer;
+}
+
+@media (max-width: 600px) {
+  .deposit-summary {
+    padding: 14px 16px;
+  }
+
+  .deposit-summary-info {
+    gap: 8px;
+  }
+
+  .deposit-display-name {
+    font-size: 16px;
+  }
+
+  .deposit-display-value {
+    font-size: 15px;
+  }
+}
