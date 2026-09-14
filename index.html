@@ -334,19 +334,20 @@
         <button class="life-card active" data-inheritance="leave">
           <div class="life-icon">🏠</div>
           <strong>希望留下資產</strong>
-          <small>以傳統 4% 方式規劃</small>
+          <span>以4%方式規劃</span>
         </button>
 
         <button class="life-card" data-inheritance="self">
           <div class="life-icon">🫰</div>
           <strong>主要用在自己身上</strong>
-          <small>以 85 歲為規劃終點</small>
+          <span>把錢用在自己的人生</span>
+          <small>以85歲為規劃終點</small>
         </button>
 
         <button class="life-card" data-inheritance="undecided">
           <div class="life-icon">🤔</div>
           <strong>尚未決定</strong>
-          <small>暫以傳統 4% 方式規劃</small>
+          <span>暫以4%方式規劃</span>
         </button>
       </div>
     </div>
@@ -443,6 +444,11 @@
         <strong id="retirementAgeResult">55 歲</strong>
       </div>
 
+      <div class="result-card">
+        <span>85歲預估剩餘資產</span>
+        <strong id="age85Remaining">NT$ 0</strong>
+      </div>
+
     </div>
 
 
@@ -536,7 +542,7 @@
       <strong>📌 試算方式</strong>
 
       <p>
-        本工具以「4% 提領率」估算退休資產需求，並會依你設定的退休年齡與通膨率，把生活費換算成退休當年的金額。
+        <span id="calculationNoteText">以4%提領率估算退休資產需求，並依設定的退休年齡與通膨率，把生活費換算成退休當年的金額。</span>
         這一區只負責計算「需要多少錢」，不會因第 05 區的投資報酬率或每月投入金額而改變。
       </p>
 

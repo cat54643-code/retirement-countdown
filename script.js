@@ -591,7 +591,57 @@ document.addEventListener("DOMContentLoaded", function () {
     var years = Math.max(age - currentAge, 0);
     return getBaseAnnualNeed() * Math.pow(1 + getInflationRate() / 100, years);
   }
+  function getInheritancePlan() {
+    var button = document.querySelector("[data-inheritance].active");
+    return button ? button.getAttribute("data-inheritance") : "leave";
+  }
+
+  function isSpendDownPlan() {
+    return getInheritancePlan() === "self";
+  }
+
+  function getWeightedRetirementReturn() {
+    var balances = getAssetBalances();
+    var total = balances.cash + balances.deposit + balances.investment;
+    if (total <= 0) return getNumber("investmentAnnualReturn");
+    return (
+      balances.cash * getNumber("cashAnnualReturn") +
+      balances.deposit * getNumber("depositAnnualReturn") +
+      balances.investment * getNumber("investmentAnnualReturn")
+    ) / total;
+  }
+
+  function getMonthlyPlanningIncomeAtAge(age) {
+    var goal = getActiveGoal();
+    var salary = goal === "micro" ? getNumber("microIncome") : 0;
+    var laborPension = getLaborPensionBalanceAtAge(age);
+    var pensionMonthly = laborPension.available ? laborPension.balance * 0.04 / 12 : 0;
+    var laborInsurance = getLaborInsuranceMonthlyAtAge(age);
+    return salary + pensionMonthly + laborInsurance;
+  }
+
+  function calculateSpendDownTargetAtAge(age) {
+    var endAge = 85;
+    if (age >= endAge) return 0;
+
+    var monthlyRate = getWeightedRetirementReturn() / 100 / 12;
+    var baseAnnualNeed = calculateAnnualNeedAtAge(age);
+    var months = Math.ceil((endAge - age) * 12);
+    var presentValue = 0;
+
+    for (var month = 0; month < months; month++) {
+      var years = month / 12;
+      var annualNeedAtMonth = baseAnnualNeed * Math.pow(1 + getInflationRate() / 100, years);
+      var monthlyNeed = annualNeedAtMonth / 12;
+      var monthlyIncome = getMonthlyPlanningIncomeAtAge(age + month / 12);
+      var withdrawal = Math.max(monthlyNeed - monthlyIncome, 0);
+      presentValue += withdrawal / Math.pow(1 + monthlyRate, month + 1);
+    }
+    return Math.max(presentValue, 0);
+  }
+
   function calculateRetirementTargetAtAge(age) {
+    if (isSpendDownPlan()) return calculateSpendDownTargetAtAge(age);
     return calculateAnnualNeedAtAge(age) / 0.04;
   }
   function getAssetBalances() {
@@ -619,7 +669,8 @@ document.addEventListener("DOMContentLoaded", function () {
       monthlyInvestment: getNumber("monthlyInvestment"),
       cashAnnualReturn: getNumber("cashAnnualReturn"),
       depositAnnualReturn: getNumber("depositAnnualReturn"),
-      investmentAnnualReturn: getNumber("investmentAnnualReturn")
+      investmentAnnualReturn: getNumber("investmentAnnualReturn"),
+      inheritancePlan: getInheritancePlan()
     };
   }
   function calculateAnnualNeed() {
@@ -661,20 +712,20 @@ document.addEventListener("DOMContentLoaded", function () {
     var data = getRetirementData();
     var resultElement = document.getElementById("projectionRetirementAge");
     if (!resultElement) return;
-    if (data.retirementTarget <= 0) {
-      resultElement.textContent = "立即達成 🎉";
+
+    var currentTarget = calculateRetirementTargetAtAge(data.currentAge);
+    if (currentTarget <= 0 || data.currentAssets >= currentTarget) {
+      resultElement.textContent = data.currentAge.toFixed(1) + " 歲";
       return;
     }
+
     var projected = {
       cash: data.balances.cash,
       deposit: data.balances.deposit,
       investment: data.balances.investment
     };
-    if (data.currentAssets >= calculateRetirementTargetAtAge(data.currentAge)) {
-      resultElement.textContent = data.currentAge.toFixed(1) + " 歲";
-      return;
-    }
     var estimatedAge = null;
+
     for (var month = 1; month <= 1200; month++) {
       projected.cash *= 1 + data.cashAnnualReturn / 100 / 12;
       projected.deposit *= 1 + data.depositAnnualReturn / 100 / 12;
@@ -686,6 +737,7 @@ document.addEventListener("DOMContentLoaded", function () {
         break;
       }
     }
+
     resultElement.textContent = estimatedAge === null ? "尚未達成" : estimatedAge.toFixed(1) + " 歲";
   }
   /* =====================================================
@@ -766,6 +818,56 @@ document.addEventListener("DOMContentLoaded", function () {
     };
   }
 
+  function calculateAssetsAtAgeWithoutRetirementWithdrawals(targetAge) {
+    var data = getRetirementData();
+    var projected = {
+      cash: data.balances.cash,
+      deposit: data.balances.deposit,
+      investment: data.balances.investment
+    };
+    var months = Math.max(Math.ceil((targetAge - data.currentAge) * 12), 0);
+    for (var month = 0; month < months; month++) {
+      projected.cash *= 1 + data.cashAnnualReturn / 100 / 12;
+      projected.deposit *= 1 + data.depositAnnualReturn / 100 / 12;
+      projected.investment = projected.investment * (1 + data.investmentAnnualReturn / 100 / 12) + data.monthlyInvestment;
+    }
+    return projected.cash + projected.deposit + projected.investment;
+  }
+
+  function calculateAssetsRemainingAt85(retirementAge, retirementAssets) {
+    var endAge = 85;
+    if (!retirementAge || retirementAge >= endAge) return Math.max(retirementAssets || 0, 0);
+
+    var data = getRetirementData();
+    var assets = Math.max(retirementAssets || 0, 0);
+    var monthlyRate = getWeightedRetirementReturn() / 100 / 12;
+    var inflationMonthly = Math.pow(1 + data.inflationRate / 100, 1 / 12) - 1;
+    var baseAnnualNeed = calculateAnnualNeedAtAge(retirementAge);
+    var months = Math.ceil((endAge - retirementAge) * 12);
+
+    for (var month = 0; month < months; month++) {
+      assets *= 1 + monthlyRate;
+      var annualNeed = baseAnnualNeed * Math.pow(1 + data.inflationRate / 100, month / 12);
+      var monthlyNeed = annualNeed / 12;
+      var monthlyIncome = getMonthlyPlanningIncomeAtAge(retirementAge + month / 12);
+      assets -= Math.max(monthlyNeed - monthlyIncome, 0);
+      if (assets < 0) assets = 0;
+    }
+    return assets;
+  }
+
+  function updateAge85Remaining(retirementAge) {
+    var element = document.getElementById("age85Remaining");
+    if (!element) return;
+    if (!retirementAge || retirementAge === null) {
+      element.textContent = "尚無法估算";
+      return;
+    }
+    var assetsAtRetirement = calculateAssetsAtAgeWithoutRetirementWithdrawals(retirementAge);
+    var remaining = calculateAssetsRemainingAt85(retirementAge, assetsAtRetirement);
+    element.textContent = formatNTD(remaining);
+  }
+
   function calculateProjection() {
     var data = getRetirementData();
     var endAge = getProjectionEndAge();
@@ -802,6 +904,17 @@ document.addEventListener("DOMContentLoaded", function () {
     if (futureAssetsElement) {
       var finalAssets = projected.cash + projected.deposit + projected.investment;
       futureAssetsElement.textContent = formatNTD(finalAssets);
+    }
+
+    var retirementAgeElement = document.getElementById("projectionRetirementAge");
+    if (retirementAgeElement) {
+      var ageText = retirementAgeElement.textContent;
+      var retirementAge = parseFloat(ageText);
+      if (isFinite(retirementAge)) updateAge85Remaining(retirementAge);
+      else {
+        var age85Element = document.getElementById("age85Remaining");
+        if (age85Element) age85Element.textContent = "尚無法估算";
+      }
     }
   }
 
@@ -916,6 +1029,16 @@ document.addEventListener("DOMContentLoaded", function () {
     var protectionMonthly = balance * 0.04 / 12 + monthlyBenefit;
     if (protectionElement) protectionElement.textContent = formatNTD(protectionMonthly);
   }
+  function updateCalculationNote() {
+    var element = document.getElementById("calculationNoteText");
+    if (!element) return;
+    if (isSpendDownPlan()) {
+      element.textContent = "以85歲為規劃終點，模擬退休後生活費、通膨、投資報酬與退休保障，估算退休時所需資產。";
+    } else {
+      element.textContent = "以4%提領率估算退休資產需求，並依設定的退休年齡與通膨率，把生活費換算成退休當年的金額。";
+    }
+  }
+
   function updateAllRetirementCalculations() {
     updateAssetTotals();
     calculateAnnualNeed();
