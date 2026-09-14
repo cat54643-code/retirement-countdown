@@ -592,8 +592,8 @@ document.addEventListener("DOMContentLoaded", function () {
     return getBaseAnnualNeed() * Math.pow(1 + getInflationRate() / 100, years);
   }
   function getInheritancePlan() {
-    var button = document.querySelector("[data-inheritance].active");
-    return button ? button.getAttribute("data-inheritance") : "leave";
+    /* 統一從目前選取的遺產規劃卡片讀取，避免不同函式各自判斷造成模式不同步。 */
+    return getActiveInheritancePlan();
   }
 
   function isSpendDownPlan() {
