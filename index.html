@@ -417,6 +417,91 @@
     </div>
 
 
+
+    <div class="pension-card">
+      <div class="pension-title">🏦 勞退／勞保退休保障</div>
+      <div class="pension-subtitle">
+        這裡把「勞退新制個人專戶」與「勞保老年年金」分開估算；它們不會直接算進目前總資產，避免把尚未可領的退休保障誤當成現金資產。
+      </div>
+
+      <div class="sub-title">勞退新制</div>
+      <div class="form-grid pension-grid">
+        <label>
+          <span>目前勞退專戶餘額</span>
+          <input type="number" id="laborPensionBalance" value="0" min="0" step="10000">
+          <small>NT$</small>
+        </label>
+        <label>
+          <span>目前月提繳工資</span>
+          <input type="number" id="laborPensionSalary" value="0" min="0" step="1000">
+          <small>NT$ / 月</small>
+        </label>
+        <label>
+          <span>雇主提繳率</span>
+          <input type="number" id="laborPensionEmployerRate" value="6" min="0" max="6" step="0.1">
+          <small>%</small>
+        </label>
+        <label>
+          <span>個人自提率</span>
+          <input type="number" id="laborPensionSelfRate" value="0" min="0" max="6" step="0.1">
+          <small>%</small>
+        </label>
+        <label>
+          <span>勞退預估年報酬率</span>
+          <input type="number" id="laborPensionReturn" value="2" min="0" max="10" step="0.1">
+          <small>% / 年</small>
+        </label>
+        <label>
+          <span>預估勞退請領年齡</span>
+          <input type="number" id="laborPensionClaimAge" value="60" min="60" max="100">
+          <small>歲</small>
+        </label>
+      </div>
+
+      <div class="sub-title">勞保老年年金</div>
+      <div class="form-grid pension-grid">
+        <label>
+          <span>目前勞保年資</span>
+          <input type="number" id="laborInsuranceYears" value="0" min="0" max="60" step="0.1">
+          <small>年</small>
+        </label>
+        <label>
+          <span>平均月投保薪資</span>
+          <input type="number" id="laborInsuranceSalary" value="0" min="0" step="1000">
+          <small>NT$ / 月</small>
+        </label>
+        <label>
+          <span>預計持續投保至</span>
+          <input type="number" id="laborInsuranceWorkUntilAge" value="65" min="18" max="100">
+          <small>歲</small>
+        </label>
+        <label>
+          <span>預估勞保請領年齡</span>
+          <input type="number" id="laborInsuranceClaimAge" value="65" min="60" max="70">
+          <small>歲</small>
+        </label>
+      </div>
+
+      <div class="pension-result">
+        <div>
+          <span>預估勞退專戶</span>
+          <strong id="laborPensionProjected">NT$ 0</strong>
+        </div>
+        <div>
+          <span>勞保老年年金／月</span>
+          <strong id="laborInsuranceMonthly">NT$ 0</strong>
+        </div>
+        <div>
+          <span>兩者皆可請領後保障／月</span>
+          <strong id="retirementProtectionMonthly">NT$ 0</strong>
+        </div>
+      </div>
+
+      <div class="pension-note">
+        💡 勞退新制年滿 60 歲可請領；勞保老年年金自 2026 年起法定請領年齡為 65 歲，一般情況可提前最多 5 年請領，但每提前 1 年減給 4%。以上為規劃用估算值，實際金額應以勞保局個人試算結果為準。
+      </div>
+    </div>
+
     <div class="calculation-note">
 
       <strong>📌 試算方式</strong>

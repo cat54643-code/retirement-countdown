@@ -1166,9 +1166,8 @@ footer {
   }
 }
 
-/* =================================
-   新手引導／欄位提示
-================================= */
+
+/* Beta v2 / v3 additions */
 .beginner-guide {
   background: #f4f7ff;
   border: 1px solid #dfe5ff;
@@ -1177,18 +1176,15 @@ footer {
   margin-bottom: 18px;
   line-height: 1.65;
 }
-
 .beginner-guide strong {
   display: block;
   margin-bottom: 5px;
 }
-
 .beginner-guide p {
   margin: 0;
   color: #69748a;
   font-size: 13px;
 }
-
 .field-hint {
   display: block;
   margin-top: 6px;
@@ -1197,11 +1193,9 @@ footer {
   line-height: 1.45;
   font-style: normal;
 }
-
 .retirement-assumption-form {
   margin-bottom: 18px;
 }
-
 .projection-retirement-age {
   margin-top: 14px;
   padding-top: 12px;
@@ -1214,16 +1208,64 @@ footer {
   color: #75809a;
   font-size: 13px;
 }
-
 .projection-retirement-age strong {
   display: inline;
   margin: 0;
   font-size: 17px;
 }
 
+/* 退休保障 */
+.pension-card {
+  margin-top: 18px;
+  padding-top: 18px;
+  border-top: 1px solid rgba(99,124,242,0.12);
+}
+.pension-title {
+  font-weight: 700;
+  margin-bottom: 6px;
+}
+.pension-subtitle {
+  color: #7b8497;
+  font-size: 12px;
+  line-height: 1.6;
+  margin-bottom: 14px;
+}
+.pension-grid {
+  margin-bottom: 12px;
+}
+.pension-note {
+  margin-top: 12px;
+  color: #7b8497;
+  font-size: 11px;
+  line-height: 1.55;
+}
+.pension-result {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 14px;
+}
+.pension-result > div {
+  background: #f8f9fc;
+  border-radius: 14px;
+  padding: 12px;
+  text-align: center;
+}
+.pension-result span {
+  display: block;
+  color: #7b8497;
+  font-size: 11px;
+  margin-bottom: 5px;
+}
+.pension-result strong {
+  font-size: 16px;
+}
 @media (max-width: 650px) {
   .projection-retirement-age {
     flex-direction: column;
     gap: 4px;
+  }
+  .pension-result {
+    grid-template-columns: 1fr;
   }
 }

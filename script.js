@@ -108,9 +108,9 @@ document.addEventListener("DOMContentLoaded", function () {
      3. 現金｜建立單筆折疊項目
   ===================================================== */
   function createCashItem(itemData) {
-    var isNewItem = !itemData || Object.keys(itemData).length === 0;
     var cashList = document.getElementById("cashList");
     if (!cashList) return null;
+    var isNewItem = !itemData || Object.keys(itemData).length === 0;
     itemData = itemData || {};
     var box = document.createElement("div");
     box.className = "asset-item";
@@ -155,9 +155,9 @@ document.addEventListener("DOMContentLoaded", function () {
     var displayValue = box.querySelector(".cash-display-value");
     var toggle = box.querySelector(".cash-toggle");
     var details = box.querySelector(".cash-details");
-    if (isNewItem && details) {
+    if (isNewItem) {
       details.style.display = "block";
-      if (toggle) toggle.textContent = "▲";
+      toggle.textContent = "▲";
     }
     if (name) name.value = itemData.name || "";
     if (amount) amount.value = itemData.amount || "0";
@@ -204,9 +204,9 @@ document.addEventListener("DOMContentLoaded", function () {
      4. 投資｜建立單筆折疊項目
   ===================================================== */
   function createInvestmentItem(itemData) {
-    var isNewItem = !itemData || Object.keys(itemData).length === 0;
     var investmentList = document.getElementById("investmentList");
     if (!investmentList) return null;
+    var isNewItem = !itemData || Object.keys(itemData).length === 0;
     itemData = itemData || {};
     var box = document.createElement("div");
     box.className = "asset-item";
@@ -275,9 +275,9 @@ document.addEventListener("DOMContentLoaded", function () {
     var displayValue = box.querySelector(".investment-display-value");
     var toggle = box.querySelector(".investment-toggle");
     var details = box.querySelector(".investment-details");
-    if (isNewItem && details) {
+    if (isNewItem) {
       details.style.display = "block";
-      if (toggle) toggle.textContent = "▲";
+      toggle.textContent = "▲";
     }
     symbol.value = itemData.symbol || "";
     market.value = itemData.market || "TW";
@@ -337,9 +337,9 @@ document.addEventListener("DOMContentLoaded", function () {
      5. 定存｜建立單筆折疊項目
   ===================================================== */
   function createDepositItem(itemData) {
-    var isNewItem = !itemData || Object.keys(itemData).length === 0;
     var depositList = document.getElementById("depositList");
     if (!depositList) return null;
+    var isNewItem = !itemData || Object.keys(itemData).length === 0;
     itemData = itemData || {};
     var box = document.createElement("div");
     box.className = "asset-item";
@@ -395,9 +395,9 @@ document.addEventListener("DOMContentLoaded", function () {
     var interest = box.querySelector(".deposit-interest");
     var toggle = box.querySelector(".deposit-toggle");
     var details = box.querySelector(".deposit-details");
-    if (isNewItem && details) {
+    if (isNewItem) {
       details.style.display = "block";
-      if (toggle) toggle.textContent = "▲";
+      toggle.textContent = "▲";
     }
     name.value = itemData.name || "";
     amount.value = itemData.amount || "0";
@@ -550,38 +550,29 @@ document.addEventListener("DOMContentLoaded", function () {
       ? getNumber("microCurrentAge")
       : getNumber("currentAge");
   }
-
   function getPlannedRetirementAge() {
     return getActiveGoal() === "micro"
       ? getNumber("microRetireAge")
       : getNumber("fullRetireAge");
   }
-
   function getBaseAnnualNeed() {
-    var goal = getActiveGoal();
     var travelBudget = getTravelBudget();
-    if (goal === "micro") {
-      var microExpense = getNumber("microExpense");
-      var microIncome = getNumber("microIncome");
-      return Math.max(microExpense - microIncome, 0) * 12 + travelBudget;
+    if (getActiveGoal() === "micro") {
+      return Math.max(getNumber("microExpense") - getNumber("microIncome"), 0) * 12 + travelBudget;
     }
     return getNumber("monthlyExpense") * 12 + travelBudget;
   }
-
   function getInflationRate() {
-    return Math.max(0, getNumber("inflationRate"));
+    return getNumber("inflationRate");
   }
-
   function calculateAnnualNeedAtAge(age) {
     var currentAge = getGoalCurrentAge();
-    var years = Math.max(0, age - currentAge);
+    var years = Math.max(age - currentAge, 0);
     return getBaseAnnualNeed() * Math.pow(1 + getInflationRate() / 100, years);
   }
-
   function calculateRetirementTargetAtAge(age) {
     return calculateAnnualNeedAtAge(age) / 0.04;
   }
-
   function getAssetBalances() {
     return {
       cash: calculateCashTWD(),
@@ -589,34 +580,35 @@ document.addEventListener("DOMContentLoaded", function () {
       deposit: calculateDepositTWD()
     };
   }
-
   function getRetirementData() {
-    var currentAge = getGoalCurrentAge();
-    var plannedRetirementAge = getPlannedRetirementAge();
     var balances = getAssetBalances();
     var currentAssets = balances.cash + balances.investment + balances.deposit;
-    var annualNeed = calculateAnnualNeedAtAge(plannedRetirementAge);
-    var retirementTarget = annualNeed / 0.04;
-
+    var plannedAge = getPlannedRetirementAge();
+    var annualNeed = calculateAnnualNeedAtAge(plannedAge);
+    var retirementTarget = calculateRetirementTargetAtAge(plannedAge);
     return {
       goal: getActiveGoal(),
-      currentAge: currentAge,
-      plannedRetirementAge: plannedRetirementAge,
-      baseAnnualNeed: getBaseAnnualNeed(),
       annualNeed: annualNeed,
       retirementTarget: retirementTarget,
       currentAssets: currentAssets,
-      cashAssets: balances.cash,
-      investmentAssets: balances.investment,
-      depositAssets: balances.deposit,
+      currentAge: getGoalCurrentAge(),
+      plannedRetirementAge: plannedAge,
       inflationRate: getInflationRate(),
+      balances: balances,
+      monthlyInvestment: getNumber("monthlyInvestment"),
       cashAnnualReturn: getNumber("cashAnnualReturn"),
       depositAnnualReturn: getNumber("depositAnnualReturn"),
-      investmentAnnualReturn: getNumber("investmentAnnualReturn"),
-      monthlyInvestment: getNumber("monthlyInvestment")
+      investmentAnnualReturn: getNumber("investmentAnnualReturn")
     };
   }
-
+  function calculateAnnualNeed() {
+    var element = document.getElementById("annualNeed");
+    var data = getRetirementData();
+    if (element) element.textContent = formatNTD(data.annualNeed);
+  }
+  /* =====================================================
+     9. 退休目標 / 達成率
+  ===================================================== */
   function updateRetirementDisplay() {
     var data = getRetirementData();
     var annualNeedElement = document.getElementById("annualNeed");
@@ -626,84 +618,57 @@ document.addEventListener("DOMContentLoaded", function () {
     var progressBar = document.getElementById("progressBar");
     var progressCurrent = document.getElementById("progressCurrent");
     var progressTarget = document.getElementById("progressTarget");
-    var retirementAgeElement = document.getElementById("retirementAgeResult");
-
+    var ageElement = document.getElementById("retirementAgeResult");
     if (annualNeedElement) annualNeedElement.textContent = formatNTD(data.annualNeed);
     if (targetElement) targetElement.textContent = formatNTD(data.retirementTarget);
-
     var remaining = Math.max(data.retirementTarget - data.currentAssets, 0);
     if (remainingElement) {
-      remainingElement.textContent =
-        data.retirementTarget > 0 && data.currentAssets >= data.retirementTarget
-          ? "已達成 🎉"
-          : formatNTD(remaining);
+      remainingElement.textContent = data.currentAssets >= data.retirementTarget ? "已達成 🎉" : formatNTD(remaining);
     }
-
-    var progress = data.retirementTarget > 0
-      ? data.currentAssets / data.retirementTarget * 100
-      : 0;
+    var progress = data.retirementTarget > 0 ? data.currentAssets / data.retirementTarget * 100 : 0;
     progress = Math.max(0, Math.min(progress, 100));
-
-    if (progressPercentElement) {
-      progressPercentElement.textContent = progress.toFixed(1) + "%";
-    }
+    if (progressPercentElement) progressPercentElement.textContent = progress.toFixed(1) + "%";
     if (progressBar) progressBar.style.width = progress + "%";
     if (progressCurrent) progressCurrent.textContent = formatNTD(data.currentAssets);
     if (progressTarget) progressTarget.textContent = formatNTD(data.retirementTarget);
-    if (retirementAgeElement) {
-      retirementAgeElement.textContent =
-        data.plannedRetirementAge > 0
-          ? data.plannedRetirementAge.toFixed(1) + " 歲"
-          : "尚未設定";
-    }
+    if (ageElement) ageElement.textContent = data.plannedRetirementAge > 0 ? data.plannedRetirementAge + " 歲" : "尚未設定";
   }
-
   /* =====================================================
-     9. 預計退休年齡
-     - 屬於第 05 區的成長假設結果
-     - 不再回寫第 04 區
+     10. 依第 05 區假設估算達成退休目標年齡
   ===================================================== */
   function calculateRetirementAge() {
     var data = getRetirementData();
     var resultElement = document.getElementById("projectionRetirementAge");
     if (!resultElement) return;
-
-    if (data.currentAssets <= 0 && data.monthlyInvestment <= 0) {
-      resultElement.textContent = "尚未達成";
+    if (data.retirementTarget <= 0) {
+      resultElement.textContent = "立即達成 🎉";
       return;
     }
-
-    var balances = {
-      cash: data.cashAssets,
-      investment: data.investmentAssets,
-      deposit: data.depositAssets
+    var projected = {
+      cash: data.balances.cash,
+      deposit: data.balances.deposit,
+      investment: data.balances.investment
     };
-
-    var maxMonths = 1200;
-    for (var month = 0; month <= maxMonths; month++) {
-      var age = data.currentAge + month / 12;
-      var target = calculateRetirementTargetAtAge(age);
-
-      var total = balances.cash + balances.investment + balances.deposit;
-      if (total >= target) {
-        resultElement.textContent = age.toFixed(1) + " 歲";
-        return;
-      }
-
-      if (month === maxMonths) break;
-
-      balances.cash *= 1 + data.cashAnnualReturn / 100 / 12;
-      balances.deposit *= 1 + data.depositAnnualReturn / 100 / 12;
-      balances.investment =
-        balances.investment * (1 + data.investmentAnnualReturn / 100 / 12) +
-        data.monthlyInvestment;
+    if (data.currentAssets >= calculateRetirementTargetAtAge(data.currentAge)) {
+      resultElement.textContent = data.currentAge.toFixed(1) + " 歲";
+      return;
     }
-
-    resultElement.textContent = "尚未達成";
+    var estimatedAge = null;
+    for (var month = 1; month <= 1200; month++) {
+      projected.cash *= 1 + data.cashAnnualReturn / 100 / 12;
+      projected.deposit *= 1 + data.depositAnnualReturn / 100 / 12;
+      projected.investment = projected.investment * (1 + data.investmentAnnualReturn / 100 / 12) + data.monthlyInvestment;
+      var total = projected.cash + projected.deposit + projected.investment;
+      var age = data.currentAge + month / 12;
+      if (total >= calculateRetirementTargetAtAge(age)) {
+        estimatedAge = age;
+        break;
+      }
+    }
+    resultElement.textContent = estimatedAge === null ? "尚未達成" : estimatedAge.toFixed(1) + " 歲";
   }
-
   /* =====================================================
-     10. 資產成長預估
+     11. 資產成長預估
   ===================================================== */
   function calculateProjection() {
     var data = getRetirementData();
@@ -711,73 +676,100 @@ document.addEventListener("DOMContentLoaded", function () {
     var futureAssetsElement = document.getElementById("futureAssets");
     var projectionYearsText = document.getElementById("projectionYearsText");
     var projectionRows = document.getElementById("projectionRows");
-
     if (!futureAssetsElement || !projectionRows) return;
     projectionRows.innerHTML = "";
-
     if (years <= 0) {
       futureAssetsElement.textContent = "NT$ 0";
       return;
     }
-
-    var balances = {
-      cash: data.cashAssets,
-      investment: data.investmentAssets,
-      deposit: data.depositAssets
+    var projected = {
+      cash: data.balances.cash,
+      deposit: data.balances.deposit,
+      investment: data.balances.investment
     };
-
     for (var year = 1; year <= years; year++) {
       for (var month = 1; month <= 12; month++) {
-        balances.cash *= 1 + data.cashAnnualReturn / 100 / 12;
-        balances.deposit *= 1 + data.depositAnnualReturn / 100 / 12;
-        balances.investment =
-          balances.investment * (1 + data.investmentAnnualReturn / 100 / 12) +
-          data.monthlyInvestment;
+        projected.cash *= 1 + data.cashAnnualReturn / 100 / 12;
+        projected.deposit *= 1 + data.depositAnnualReturn / 100 / 12;
+        projected.investment = projected.investment * (1 + data.investmentAnnualReturn / 100 / 12) + data.monthlyInvestment;
       }
-
-      var projectedAssets =
-        balances.cash + balances.investment + balances.deposit;
-      var gap = Math.max(data.retirementTarget - projectedAssets, 0);
-
+      var projectedAssets = projected.cash + projected.deposit + projected.investment;
+      var targetAtYear = calculateRetirementTargetAtAge(data.currentAge + year);
+      var gap = Math.max(targetAtYear - projectedAssets, 0);
       var row = document.createElement("div");
       row.className = "projection-row";
-
       var yearText = document.createElement("span");
       yearText.textContent = "第 " + year + " 年";
-
       var assetText = document.createElement("span");
       assetText.textContent = formatNTD(projectedAssets);
-
       var gapText = document.createElement("span");
-      gapText.textContent =
-        data.retirementTarget > 0 && projectedAssets >= data.retirementTarget
-          ? "已達成 🎉"
-          : formatNTD(gap);
-
+      gapText.textContent = projectedAssets >= targetAtYear ? "已達成 🎉" : formatNTD(gap);
       row.appendChild(yearText);
       row.appendChild(assetText);
       row.appendChild(gapText);
       projectionRows.appendChild(row);
     }
-
-    var futureAssets =
-      balances.cash + balances.investment + balances.deposit;
-    futureAssetsElement.textContent = formatNTD(futureAssets);
-
-    if (projectionYearsText) {
-      projectionYearsText.textContent = years + " 年後預估資產";
-    }
+    var finalAssets = projected.cash + projected.deposit + projected.investment;
+    futureAssetsElement.textContent = formatNTD(finalAssets);
+    if (projectionYearsText) projectionYearsText.textContent = years + " 年後預估資產";
   }
+  /* =====================================================
+     11.5 勞退／勞保
+  ===================================================== */
+  function calculateLaborPension() {
+    var currentAge = getGoalCurrentAge();
+    var claimAge = Math.max(getNumber("laborPensionClaimAge"), 60);
+    var balance = getNumber("laborPensionBalance");
+    var salary = getNumber("laborPensionSalary");
+    var employerRate = Math.min(Math.max(getNumber("laborPensionEmployerRate"), 0), 6);
+    var selfRate = Math.min(Math.max(getNumber("laborPensionSelfRate"), 0), 6);
+    var annualReturn = getNumber("laborPensionReturn");
+    var workUntilAge = getNumber("laborInsuranceWorkUntilAge");
+    var months = Math.max(Math.round((claimAge - currentAge) * 12), 0);
+    var contributionMonths = Math.max(Math.min(Math.round((workUntilAge - currentAge) * 12), months), 0);
+    var monthlyRate = annualReturn / 100 / 12;
+    for (var month = 1; month <= months; month++) {
+      balance *= 1 + monthlyRate;
+      if (month <= contributionMonths) {
+        balance += salary * (employerRate + selfRate) / 100;
+      }
+    }
+    var pensionElement = document.getElementById("laborPensionProjected");
+    if (pensionElement) pensionElement.textContent = formatNTD(balance);
 
+    var insuranceYears = getNumber("laborInsuranceYears");
+    var insuranceSalary = getNumber("laborInsuranceSalary");
+    var insuranceWorkUntilAge = getNumber("laborInsuranceWorkUntilAge");
+    var insuranceClaimAge = Math.max(getNumber("laborInsuranceClaimAge"), 60);
+    var insuranceCurrentAge = currentAge;
+    var futureYears = Math.max(insuranceWorkUntilAge - insuranceCurrentAge, 0);
+    var totalInsuranceYears = Math.min(60, insuranceYears + futureYears);
+    var monthlyA = totalInsuranceYears * insuranceSalary * 0.00775 + 3000;
+    var monthlyB = totalInsuranceYears * insuranceSalary * 0.0155;
+    var monthlyBenefit = Math.max(monthlyA, monthlyB);
+    var adjustmentYears = insuranceClaimAge - 65;
+    if (adjustmentYears < 0) monthlyBenefit *= 1 - Math.min(Math.abs(adjustmentYears), 5) * 0.04;
+    if (adjustmentYears > 0) monthlyBenefit *= 1 + Math.min(adjustmentYears, 5) * 0.04;
+    if (insuranceClaimAge === 65) {
+      /* no adjustment */
+    }
+    var insuranceElement = document.getElementById("laborInsuranceMonthly");
+    if (insuranceElement) insuranceElement.textContent = formatNTD(monthlyBenefit);
+
+    var protectionElement = document.getElementById("retirementProtectionMonthly");
+    var protectionMonthly = balance * 0.04 / 12 + monthlyBenefit;
+    if (protectionElement) protectionElement.textContent = formatNTD(protectionMonthly);
+  }
   function updateAllRetirementCalculations() {
     updateAssetTotals();
+    calculateAnnualNeed();
     updateRetirementDisplay();
+    calculateLaborPension();
     calculateRetirementAge();
     calculateProjection();
   }
-
   /* =====================================================
-     11. 統一監聽輸入變更
+     12. 統一監聽輸入變更
   ===================================================== */
   document.addEventListener("input", function (event) {
     var target = event.target;
@@ -798,12 +790,21 @@ document.addEventListener("DOMContentLoaded", function () {
       target.id === "depositAnnualReturn" ||
       target.id === "investmentAnnualReturn" ||
       target.id === "monthlyInvestment" ||
+      target.id === "laborPensionBalance" ||
+      target.id === "laborPensionSalary" ||
+      target.id === "laborPensionEmployerRate" ||
+      target.id === "laborPensionSelfRate" ||
+      target.id === "laborPensionReturn" ||
+      target.id === "laborPensionClaimAge" ||
+      target.id === "laborInsuranceYears" ||
+      target.id === "laborInsuranceSalary" ||
+      target.id === "laborInsuranceWorkUntilAge" ||
+      target.id === "laborInsuranceClaimAge" ||
       target.id === "projectionYears"
     ) {
       updateAllRetirementCalculations();
     }
   });
-
   document.addEventListener("change", function (event) {
     var target = event.target;
     if (
@@ -815,7 +816,6 @@ document.addEventListener("DOMContentLoaded", function () {
       updateAllRetirementCalculations();
     }
   });
-
   /* =====================================================
      13. 儲存資料
   ===================================================== */
@@ -835,7 +835,17 @@ document.addEventListener("DOMContentLoaded", function () {
       "depositAnnualReturn",
       "investmentAnnualReturn",
       "monthlyInvestment",
-      "projectionYears"
+      "projectionYears",
+      "laborPensionBalance",
+      "laborPensionSalary",
+      "laborPensionEmployerRate",
+      "laborPensionSelfRate",
+      "laborPensionReturn",
+      "laborPensionClaimAge",
+      "laborInsuranceYears",
+      "laborInsuranceSalary",
+      "laborInsuranceWorkUntilAge",
+      "laborInsuranceClaimAge"
     ];
     ids.forEach(function (id) {
       var element = document.getElementById(id);
@@ -940,7 +950,6 @@ document.addEventListener("DOMContentLoaded", function () {
     } catch (error) {
       return;
     }
-    /* 舊版資料相容：舊版只有 annualReturn，載入後先套用到三類資產，避免舊試算結果突然改變。 */
     if (data.annualReturn !== undefined) {
       if (data.cashAnnualReturn === undefined) data.cashAnnualReturn = data.annualReturn;
       if (data.depositAnnualReturn === undefined) data.depositAnnualReturn = data.annualReturn;
@@ -960,7 +969,17 @@ document.addEventListener("DOMContentLoaded", function () {
       "depositAnnualReturn",
       "investmentAnnualReturn",
       "monthlyInvestment",
-      "projectionYears"
+      "projectionYears",
+      "laborPensionBalance",
+      "laborPensionSalary",
+      "laborPensionEmployerRate",
+      "laborPensionSelfRate",
+      "laborPensionReturn",
+      "laborPensionClaimAge",
+      "laborInsuranceYears",
+      "laborInsuranceSalary",
+      "laborInsuranceWorkUntilAge",
+      "laborInsuranceClaimAge"
     ];
     ids.forEach(function (id) {
       var element = document.getElementById(id);
