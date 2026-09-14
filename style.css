@@ -541,8 +541,28 @@ label small {
 
 
 /* =========================
-   Lifestyle
+   Lifestyle / Life Planning
 ========================= */
+
+.life-question {
+  margin-top: 24px;
+}
+
+.life-question + .life-question {
+  margin-top: 30px;
+}
+
+.life-question-title {
+  font-size: 18px;
+  font-weight: 800;
+}
+
+.life-question-hint {
+  margin: 7px 0 14px;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.6;
+}
 
 .life-grid {
   display: grid;

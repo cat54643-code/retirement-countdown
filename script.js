@@ -49,10 +49,18 @@ document.addEventListener("DOMContentLoaded", function () {
     var button = document.querySelector("[data-goal].active");
     return button ? button.getAttribute("data-goal") : "full";
   }
+  function getActiveRetirementLifestyle() {
+    var button = document.querySelector("[data-retirement-life].active");
+    return button ? button.getAttribute("data-retirement-life") : "stable";
+  }
+  function getActiveInheritancePlan() {
+    var button = document.querySelector("[data-inheritance].active");
+    return button ? button.getAttribute("data-inheritance") : "leave";
+  }
   function getTravelBudget() {
-    var button = document.querySelector("[data-life].active");
+    var button = document.querySelector("[data-retirement-life].active");
     if (!button) return 0;
-    var life = button.getAttribute("data-life");
+    var life = button.getAttribute("data-retirement-life");
     if (life === "happy") return 250000;
     if (life === "luxury") return 315000;
     return 0;
@@ -81,26 +89,39 @@ document.addEventListener("DOMContentLoaded", function () {
     });
   });
   /* =====================================================
-     2. 安穩 / 小確幸 / 豪華
+     2. 人生模式｜遺產規劃 / 退休後生活
   ===================================================== */
-  var lifeButtons = document.querySelectorAll("[data-life]");
+  var inheritanceButtons = document.querySelectorAll("[data-inheritance]");
+  var retirementLifeButtons = document.querySelectorAll("[data-retirement-life]");
+  var selectedInheritance = document.getElementById("selectedInheritance");
   var selectedLifestyle = document.getElementById("selectedLifestyle");
   var travelBudgetElement = document.getElementById("travelBudget");
-  lifeButtons.forEach(function (button) {
+
+  inheritanceButtons.forEach(function (button) {
     button.addEventListener("click", function () {
-      lifeButtons.forEach(function (item) {
-        item.classList.remove("active");
-      });
+      inheritanceButtons.forEach(function (item) { item.classList.remove("active"); });
       button.classList.add("active");
-      var life = button.getAttribute("data-life");
+      var plan = button.getAttribute("data-inheritance");
+      if (selectedInheritance) {
+        if (plan === "leave") selectedInheritance.textContent = "🏠 希望留下資產";
+        if (plan === "self") selectedInheritance.textContent = "🌿 主要用在自己身上";
+        if (plan === "undecided") selectedInheritance.textContent = "🤔 尚未決定";
+      }
+      updateAllRetirementCalculations();
+    });
+  });
+
+  retirementLifeButtons.forEach(function (button) {
+    button.addEventListener("click", function () {
+      retirementLifeButtons.forEach(function (item) { item.classList.remove("active"); });
+      button.classList.add("active");
+      var life = button.getAttribute("data-retirement-life");
       if (selectedLifestyle) {
-        if (life === "stable") selectedLifestyle.textContent = "🌿 安穩";
-        if (life === "happy") selectedLifestyle.textContent = "✈️ 小確幸";
-        if (life === "luxury") selectedLifestyle.textContent = "✨ 豪華";
+        if (life === "stable") selectedLifestyle.textContent = "🌿 基本生活";
+        if (life === "happy") selectedLifestyle.textContent = "✈️ 偶爾旅行／興趣";
+        if (life === "luxury") selectedLifestyle.textContent = "✨ 希望充分享受生活";
       }
-      if (travelBudgetElement) {
-        travelBudgetElement.textContent = formatNTD(getTravelBudget());
-      }
+      if (travelBudgetElement) travelBudgetElement.textContent = formatNTD(getTravelBudget());
       updateAllRetirementCalculations();
     });
   });
@@ -996,10 +1017,10 @@ document.addEventListener("DOMContentLoaded", function () {
       if (element) data[id] = element.value;
     });
     data.goal = getActiveGoal();
-    var lifeButton = document.querySelector("[data-life].active");
-    data.life = lifeButton
-      ? lifeButton.getAttribute("data-life")
-      : "stable";
+    data.inheritancePlan = getActiveInheritancePlan();
+    data.retirementLifestyle = getActiveRetirementLifestyle();
+    /* 保留舊版 life 欄位，方便既有資料相容 */
+    data.life = data.retirementLifestyle;
     return data;
   }
   function collectCashData() {
@@ -1137,10 +1158,13 @@ document.addEventListener("DOMContentLoaded", function () {
       var goalButton = document.querySelector('[data-goal="' + data.goal + '"]');
       if (goalButton) goalButton.click();
     }
-    if (data.life) {
-      var lifeButton = document.querySelector('[data-life="' + data.life + '"]');
-      if (lifeButton) lifeButton.click();
-    }
+    var savedInheritance = data.inheritancePlan || "leave";
+    var inheritanceButton = document.querySelector('[data-inheritance="' + savedInheritance + '"]');
+    if (inheritanceButton) inheritanceButton.click();
+
+    var savedLifestyle = data.retirementLifestyle || data.life || "stable";
+    var lifestyleButton = document.querySelector('[data-retirement-life="' + savedLifestyle + '"]');
+    if (lifestyleButton) lifestyleButton.click();
     var cashList = document.getElementById("cashList");
     var investmentList = document.getElementById("investmentList");
     var depositList = document.getElementById("depositList");
@@ -1193,7 +1217,8 @@ document.addEventListener("DOMContentLoaded", function () {
      16. 初始畫面
   ===================================================== */
   var initialGoal = document.querySelector("[data-goal].active");
-  var initialLife = document.querySelector("[data-life].active");
+  var initialInheritance = document.querySelector("[data-inheritance].active");
+  var initialRetirementLife = document.querySelector("[data-retirement-life].active");
   if (initialGoal) {
     var initialGoalValue = initialGoal.getAttribute("data-goal");
     var fullSetting = document.getElementById("fullSetting");
@@ -1206,11 +1231,17 @@ document.addEventListener("DOMContentLoaded", function () {
       if (microSetting) microSetting.classList.remove("hidden");
     }
   }
-  if (initialLife && selectedLifestyle && travelBudgetElement) {
-    var initialLifeValue = initialLife.getAttribute("data-life");
-    if (initialLifeValue === "stable") selectedLifestyle.textContent = "🌿 安穩";
-    if (initialLifeValue === "happy") selectedLifestyle.textContent = "✈️ 小確幸";
-    if (initialLifeValue === "luxury") selectedLifestyle.textContent = "✨ 豪華";
+  if (initialInheritance && selectedInheritance) {
+    var initialInheritanceValue = initialInheritance.getAttribute("data-inheritance");
+    if (initialInheritanceValue === "leave") selectedInheritance.textContent = "🏠 希望留下資產";
+    if (initialInheritanceValue === "self") selectedInheritance.textContent = "🌿 主要用在自己身上";
+    if (initialInheritanceValue === "undecided") selectedInheritance.textContent = "🤔 尚未決定";
+  }
+  if (initialRetirementLife && selectedLifestyle && travelBudgetElement) {
+    var initialLifeValue = initialRetirementLife.getAttribute("data-retirement-life");
+    if (initialLifeValue === "stable") selectedLifestyle.textContent = "🌿 基本生活";
+    if (initialLifeValue === "happy") selectedLifestyle.textContent = "✈️ 偶爾旅行／興趣";
+    if (initialLifeValue === "luxury") selectedLifestyle.textContent = "✨ 希望充分享受生活";
     travelBudgetElement.textContent = formatNTD(getTravelBudget());
   }
   updateFxRateDisplay();

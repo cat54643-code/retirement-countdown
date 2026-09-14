@@ -313,59 +313,96 @@
   </section>
 
 
-  <!-- 03 退休生活 -->
+  <!-- 03 你希望這筆錢怎麼使用？ -->
   <section class="card">
 
     <div class="section-title">
       <div class="section-number">03</div>
 
       <div>
-        <h2>退休生活</h2>
-        <p>選擇你希望退休後的生活方式</p>
+        <h2>你希望這筆錢怎麼使用？</h2>
+        <p>先想想未來的錢，最希望為誰、為什麼而用</p>
       </div>
     </div>
 
 
-    <div class="life-grid">
+    <div class="life-question">
+      <div class="life-question-title">
+        <span>① 遺產規劃</span>
+      </div>
+      <p class="life-question-hint">這筆錢未來需要特別為下一代或家人保留嗎？</p>
 
-      <button class="life-card active" data-life="stable">
-        <div class="life-icon">🌿</div>
-        <strong>安穩</strong>
-        <span>基本生活</span>
-        <small>不特別安排海外旅行</small>
-      </button>
+      <div class="life-grid life-grid-inheritance">
+        <button class="life-card active" data-inheritance="leave">
+          <div class="life-icon">🏠</div>
+          <strong>希望留下資產</strong>
+          <span>希望保留一筆資產</span>
+          <small>以傳統 4% 方式規劃</small>
+        </button>
+
+        <button class="life-card" data-inheritance="self">
+          <div class="life-icon">🌿</div>
+          <strong>主要用在自己身上</strong>
+          <span>希望把錢用在自己的人生</span>
+          <small>以 85 歲為資產規劃終點</small>
+        </button>
+
+        <button class="life-card" data-inheritance="undecided">
+          <div class="life-icon">🤔</div>
+          <strong>尚未決定</strong>
+          <span>先保留彈性</span>
+          <small>以傳統 4% 方式規劃</small>
+        </button>
+      </div>
+    </div>
 
 
-      <button class="life-card" data-life="happy">
-        <div class="life-icon">✈️</div>
-        <strong>小確幸</strong>
-        <span>每年 2～3 次旅行</span>
-        <small>主要前往亞洲</small>
-      </button>
+    <div class="life-question">
+      <div class="life-question-title">
+        <span>② 退休後生活</span>
+      </div>
+      <p class="life-question-hint">除了基本生活，你希望退休後保留多少錢享受生活？</p>
 
+      <div class="life-grid life-grid-lifestyle">
+        <button class="life-card active" data-retirement-life="stable">
+          <div class="life-icon">🌿</div>
+          <strong>基本生活</strong>
+          <span>安穩模式</span>
+          <small>不特別安排海外旅行</small>
+        </button>
 
-      <button class="life-card" data-life="luxury">
-        <div class="life-icon">✨</div>
-        <strong>豪華</strong>
-        <span>每年 3～6 次旅行</span>
-        <small>較高旅遊與娛樂預算</small>
-      </button>
+        <button class="life-card" data-retirement-life="happy">
+          <div class="life-icon">✈️</div>
+          <strong>偶爾旅行／興趣</strong>
+          <span>小確幸模式</span>
+          <small>每年約 2～3 次旅行</small>
+        </button>
 
+        <button class="life-card" data-retirement-life="luxury">
+          <div class="life-icon">✨</div>
+          <strong>希望充分享受生活</strong>
+          <span>豪華模式</span>
+          <small>較高旅遊與娛樂預算</small>
+        </button>
+      </div>
     </div>
 
 
     <div class="lifestyle-result">
+      <div>
+        <span>遺產規劃</span>
+        <strong id="selectedInheritance">🏠 希望留下資產</strong>
+      </div>
 
       <div>
-        <span>目前生活模式</span>
-        <strong id="selectedLifestyle">🌿 安穩</strong>
+        <span>退休後生活</span>
+        <strong id="selectedLifestyle">🌿 基本生活</strong>
       </div>
 
       <div>
         <span>每年額外旅遊預算</span>
         <strong id="travelBudget">NT$ 0</strong>
       </div>
-
     </div>
 
   </section>
