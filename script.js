@@ -104,7 +104,7 @@ document.addEventListener("DOMContentLoaded", function () {
       var plan = button.getAttribute("data-inheritance");
       if (selectedInheritance) {
         if (plan === "leave") selectedInheritance.textContent = "🏠 希望留下資產";
-        if (plan === "self") selectedInheritance.textContent = "🌿 主要用在自己身上";
+        if (plan === "self") selectedInheritance.textContent = "🫰 主要用在自己身上";
         if (plan === "undecided") selectedInheritance.textContent = "🤔 尚未決定";
       }
       updateAllRetirementCalculations();
@@ -117,9 +117,9 @@ document.addEventListener("DOMContentLoaded", function () {
       button.classList.add("active");
       var life = button.getAttribute("data-retirement-life");
       if (selectedLifestyle) {
-        if (life === "stable") selectedLifestyle.textContent = "🌿 基本生活";
-        if (life === "happy") selectedLifestyle.textContent = "✈️ 偶爾旅行／興趣";
-        if (life === "luxury") selectedLifestyle.textContent = "✨ 希望充分享受生活";
+        if (life === "stable") selectedLifestyle.textContent = "🌿 安安穩穩";
+        if (life === "happy") selectedLifestyle.textContent = "✈️ 偶爾放鬆";
+        if (life === "luxury") selectedLifestyle.textContent = "✨ 肆意享受";
       }
       if (travelBudgetElement) travelBudgetElement.textContent = formatNTD(getTravelBudget());
       updateAllRetirementCalculations();
@@ -1234,14 +1234,14 @@ document.addEventListener("DOMContentLoaded", function () {
   if (initialInheritance && selectedInheritance) {
     var initialInheritanceValue = initialInheritance.getAttribute("data-inheritance");
     if (initialInheritanceValue === "leave") selectedInheritance.textContent = "🏠 希望留下資產";
-    if (initialInheritanceValue === "self") selectedInheritance.textContent = "🌿 主要用在自己身上";
+    if (initialInheritanceValue === "self") selectedInheritance.textContent = "🫰 主要用在自己身上";
     if (initialInheritanceValue === "undecided") selectedInheritance.textContent = "🤔 尚未決定";
   }
   if (initialRetirementLife && selectedLifestyle && travelBudgetElement) {
     var initialLifeValue = initialRetirementLife.getAttribute("data-retirement-life");
-    if (initialLifeValue === "stable") selectedLifestyle.textContent = "🌿 基本生活";
-    if (initialLifeValue === "happy") selectedLifestyle.textContent = "✈️ 偶爾旅行／興趣";
-    if (initialLifeValue === "luxury") selectedLifestyle.textContent = "✨ 希望充分享受生活";
+    if (initialLifeValue === "stable") selectedLifestyle.textContent = "🌿 安安穩穩";
+    if (initialLifeValue === "happy") selectedLifestyle.textContent = "✈️ 偶爾放鬆";
+    if (initialLifeValue === "luxury") selectedLifestyle.textContent = "✨ 肆意享受";
     travelBudgetElement.textContent = formatNTD(getTravelBudget());
   }
   updateFxRateDisplay();
