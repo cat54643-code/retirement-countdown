@@ -1269,3 +1269,42 @@ footer {
     grid-template-columns: 1fr;
   }
 }
+
+/* Beta v4：年齡資產軌跡 */
+.projection-table .projection-row {
+  grid-template-columns: 0.8fr 1.25fr 1.15fr 1.25fr;
+}
+.projection-row-clickable {
+  cursor: pointer;
+}
+.projection-row-clickable:hover {
+  filter: brightness(0.98);
+}
+.projection-detail {
+  padding: 12px 14px;
+  margin-top: -1px;
+  border-top: 1px dashed #d7dee8;
+  background: #f8fafc;
+  line-height: 1.7;
+}
+.projection-detail strong {
+  display: block;
+  margin-bottom: 4px;
+}
+.projection-detail small {
+  display: block;
+  margin-top: 5px;
+  color: #667085;
+}
+.projection-target-note {
+  margin-top: 6px;
+  font-size: 12px;
+  color: #667085;
+}
+@media (max-width: 600px) {
+  .projection-table .projection-row {
+    grid-template-columns: 0.7fr 1.15fr 1.05fr 1.15fr;
+    gap: 6px;
+    font-size: 12px;
+  }
+}

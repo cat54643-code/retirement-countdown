@@ -668,51 +668,176 @@ document.addEventListener("DOMContentLoaded", function () {
     resultElement.textContent = estimatedAge === null ? "尚未達成" : estimatedAge.toFixed(1) + " 歲";
   }
   /* =====================================================
-     11. 資產成長預估
+     11. 年齡資產軌跡
   ===================================================== */
+  function getProjectionEndAge() {
+    var currentAge = getGoalCurrentAge();
+    var input = document.getElementById("projectionEndAge");
+    var value = input ? Number(input.value) : 65;
+    if (!isFinite(value)) value = 65;
+    value = Math.round(value);
+    value = Math.max(currentAge, Math.min(value, 85));
+    if (input) {
+      input.min = currentAge;
+      input.max = 85;
+      input.value = value;
+    }
+    return value;
+  }
+
+  function getLaborPensionBalanceAtAge(age) {
+    var currentAge = getGoalCurrentAge();
+    var claimAge = Math.max(getNumber("laborPensionClaimAge"), 60);
+    var balance = getNumber("laborPensionBalance");
+    var salary = getNumber("laborPensionSalary");
+    var employerRate = Math.min(Math.max(getNumber("laborPensionEmployerRate"), 0), 6);
+    var selfRate = Math.min(Math.max(getNumber("laborPensionSelfRate"), 0), 6);
+    var annualReturn = getNumber("laborPensionReturn");
+    var workUntilAge = getNumber("laborInsuranceWorkUntilAge");
+    var targetAge = Math.max(age, currentAge);
+    var months = Math.max(Math.round((targetAge - currentAge) * 12), 0);
+    var contributionMonths = Math.max(Math.min(Math.round((workUntilAge - currentAge) * 12), months), 0);
+    var monthlyRate = annualReturn / 100 / 12;
+    for (var month = 1; month <= months; month++) {
+      balance *= 1 + monthlyRate;
+      if (month <= contributionMonths) {
+        balance += salary * (employerRate + selfRate) / 100;
+      }
+    }
+    return {
+      balance: balance,
+      available: targetAge >= claimAge
+    };
+  }
+
+  function getLaborInsuranceMonthlyAtAge(age) {
+    var currentAge = getGoalCurrentAge();
+    var insuranceClaimAge = Math.max(getNumber("laborInsuranceClaimAge"), 60);
+    if (age < insuranceClaimAge) return 0;
+    var insuranceYears = getNumber("laborInsuranceYears");
+    var insuranceSalary = getNumber("laborInsuranceSalary");
+    var insuranceWorkUntilAge = getNumber("laborInsuranceWorkUntilAge");
+    var futureYears = Math.max(insuranceWorkUntilAge - currentAge, 0);
+    var totalInsuranceYears = Math.min(60, insuranceYears + futureYears);
+    var monthlyA = totalInsuranceYears * insuranceSalary * 0.00775 + 3000;
+    var monthlyB = totalInsuranceYears * insuranceSalary * 0.0155;
+    var monthlyBenefit = Math.max(monthlyA, monthlyB);
+    var adjustmentYears = insuranceClaimAge - 65;
+    if (adjustmentYears < 0) monthlyBenefit *= 1 - Math.min(Math.abs(adjustmentYears), 5) * 0.04;
+    if (adjustmentYears > 0) monthlyBenefit *= 1 + Math.min(adjustmentYears, 5) * 0.04;
+    return monthlyBenefit;
+  }
+
+  function getMonthlyAvailableAtAge(age, projectedAssets) {
+    var fourPercent = projectedAssets * 0.04 / 12;
+    var pension = getLaborPensionBalanceAtAge(age);
+    var laborPensionMonthly = pension.available ? pension.balance * 0.04 / 12 : 0;
+    var laborInsuranceMonthly = getLaborInsuranceMonthlyAtAge(age);
+    var protection = laborPensionMonthly + laborInsuranceMonthly;
+    var goal = getActiveGoal();
+    var salary = goal === "micro" ? getNumber("microIncome") : 0;
+    return {
+      salary: salary,
+      fourPercent: fourPercent,
+      protection: protection,
+      total: salary + fourPercent + protection,
+      laborPensionMonthly: laborPensionMonthly,
+      laborInsuranceMonthly: laborInsuranceMonthly
+    };
+  }
+
   function calculateProjection() {
     var data = getRetirementData();
-    var years = getNumber("projectionYears");
+    var endAge = getProjectionEndAge();
     var futureAssetsElement = document.getElementById("futureAssets");
-    var projectionYearsText = document.getElementById("projectionYearsText");
+    var targetElement = document.getElementById("projectionRetirementTarget");
     var projectionRows = document.getElementById("projectionRows");
-    if (!futureAssetsElement || !projectionRows) return;
+    if (!projectionRows) return;
     projectionRows.innerHTML = "";
-    if (years <= 0) {
-      futureAssetsElement.textContent = "NT$ 0";
-      return;
-    }
+    if (targetElement) targetElement.textContent = formatNTD(data.retirementTarget);
+
     var projected = {
       cash: data.balances.cash,
       deposit: data.balances.deposit,
       investment: data.balances.investment
     };
-    for (var year = 1; year <= years; year++) {
+
+    var currentAge = data.currentAge;
+    var availableNow = getMonthlyAvailableAtAge(currentAge, data.currentAssets);
+    var currentTarget = calculateRetirementTargetAtAge(currentAge);
+    appendProjectionRow(currentAge, data.currentAssets, currentTarget, availableNow);
+
+    for (var age = currentAge + 1; age <= endAge; age++) {
       for (var month = 1; month <= 12; month++) {
         projected.cash *= 1 + data.cashAnnualReturn / 100 / 12;
         projected.deposit *= 1 + data.depositAnnualReturn / 100 / 12;
         projected.investment = projected.investment * (1 + data.investmentAnnualReturn / 100 / 12) + data.monthlyInvestment;
       }
       var projectedAssets = projected.cash + projected.deposit + projected.investment;
-      var targetAtYear = calculateRetirementTargetAtAge(data.currentAge + year);
-      var gap = Math.max(targetAtYear - projectedAssets, 0);
-      var row = document.createElement("div");
-      row.className = "projection-row";
-      var yearText = document.createElement("span");
-      yearText.textContent = "第 " + year + " 年";
-      var assetText = document.createElement("span");
-      assetText.textContent = formatNTD(projectedAssets);
-      var gapText = document.createElement("span");
-      gapText.textContent = projectedAssets >= targetAtYear ? "已達成 🎉" : formatNTD(gap);
-      row.appendChild(yearText);
-      row.appendChild(assetText);
-      row.appendChild(gapText);
-      projectionRows.appendChild(row);
+      var targetAtAge = calculateRetirementTargetAtAge(age);
+      var available = getMonthlyAvailableAtAge(age, projectedAssets);
+      appendProjectionRow(age, projectedAssets, targetAtAge, available);
     }
-    var finalAssets = projected.cash + projected.deposit + projected.investment;
-    futureAssetsElement.textContent = formatNTD(finalAssets);
-    if (projectionYearsText) projectionYearsText.textContent = years + " 年後預估資產";
+
+    if (futureAssetsElement) {
+      var finalAssets = projected.cash + projected.deposit + projected.investment;
+      futureAssetsElement.textContent = formatNTD(finalAssets);
+    }
   }
+
+  function appendProjectionRow(age, assets, target, available) {
+    var projectionRows = document.getElementById("projectionRows");
+    if (!projectionRows) return;
+    var row = document.createElement("div");
+    row.className = "projection-row projection-row-clickable";
+    row.setAttribute("data-age", age);
+
+    var ageText = document.createElement("span");
+    ageText.textContent = age + " 歲";
+    var assetText = document.createElement("span");
+    assetText.textContent = formatNTD(assets);
+    var completionText = document.createElement("span");
+    var completion = target > 0 ? assets / target * 100 : 0;
+    completionText.textContent = completion.toFixed(0) + "%";
+    var availableText = document.createElement("span");
+    availableText.textContent = formatNTD(available.total);
+
+    row.appendChild(ageText);
+    row.appendChild(assetText);
+    row.appendChild(completionText);
+    row.appendChild(availableText);
+
+    var detail = document.createElement("div");
+    detail.className = "projection-detail hidden";
+    var title = document.createElement("strong");
+    title.textContent = age + " 歲｜每月可動用資產";
+    detail.appendChild(title);
+
+    var lines = [];
+    if (getActiveGoal() === "micro") {
+      lines.push(formatNTD(available.salary) + "（薪資）");
+    }
+    lines.push(formatNTD(available.fourPercent) + "（4%）");
+    lines.push(formatNTD(available.protection) + "（勞退／勞保）");
+    lines.push("＝ " + formatNTD(available.total) + "／月");
+    lines.forEach(function (text) {
+      var line = document.createElement("div");
+      line.textContent = text;
+      detail.appendChild(line);
+    });
+    if (available.protection > 0) {
+      var note = document.createElement("small");
+      note.textContent = "勞退以 4% 規劃換算；勞保依目前設定的預估年資與投保薪資試算。";
+      detail.appendChild(note);
+    }
+
+    projectionRows.appendChild(row);
+    projectionRows.appendChild(detail);
+    row.addEventListener("click", function () {
+      detail.classList.toggle("hidden");
+    });
+  }
+
   /* =====================================================
      11.5 勞退／勞保
   ===================================================== */
@@ -800,7 +925,7 @@ document.addEventListener("DOMContentLoaded", function () {
       target.id === "laborInsuranceSalary" ||
       target.id === "laborInsuranceWorkUntilAge" ||
       target.id === "laborInsuranceClaimAge" ||
-      target.id === "projectionYears"
+      target.id === "projectionEndAge"
     ) {
       updateAllRetirementCalculations();
     }
@@ -835,7 +960,7 @@ document.addEventListener("DOMContentLoaded", function () {
       "depositAnnualReturn",
       "investmentAnnualReturn",
       "monthlyInvestment",
-      "projectionYears",
+      "projectionEndAge",
       "laborPensionBalance",
       "laborPensionSalary",
       "laborPensionEmployerRate",
@@ -955,6 +1080,10 @@ document.addEventListener("DOMContentLoaded", function () {
       if (data.depositAnnualReturn === undefined) data.depositAnnualReturn = data.annualReturn;
       if (data.investmentAnnualReturn === undefined) data.investmentAnnualReturn = data.annualReturn;
     }
+    if (data.projectionEndAge === undefined && data.projectionYears !== undefined) {
+      var loadedCurrentAge = Number(data.currentAge || data.microCurrentAge || 33);
+      data.projectionEndAge = loadedCurrentAge + Number(data.projectionYears || 5);
+    }
     var ids = [
       "currentAge",
       "fullRetireAge",
@@ -969,7 +1098,7 @@ document.addEventListener("DOMContentLoaded", function () {
       "depositAnnualReturn",
       "investmentAnnualReturn",
       "monthlyInvestment",
-      "projectionYears",
+      "projectionEndAge",
       "laborPensionBalance",
       "laborPensionSalary",
       "laborPensionEmployerRate",

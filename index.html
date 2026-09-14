@@ -432,7 +432,7 @@
           <small>NT$</small>
         </label>
         <label>
-          <span>目前月提繳工資</span>
+          <span>勞退計算月薪</span>
           <input type="number" id="laborPensionSalary" value="0" min="0" step="1000">
           <small>NT$ / 月</small>
         </label>
@@ -516,15 +516,15 @@
   </section>
 
 
-  <!-- 05 資產成長 -->
+  <!-- 05 年齡資產軌跡 -->
   <section class="card">
 
     <div class="section-title">
       <div class="section-number">05</div>
 
       <div>
-        <h2>資產成長預估</h2>
-        <p>看看持續投資後可能的資產變化</p>
+        <h2>年齡資產軌跡</h2>
+        <p>看看未來不同年齡的資產與退休準備狀態</p>
       </div>
     </div>
 
@@ -556,9 +556,10 @@
       </label>
 
       <label>
-        <span>預估年數</span>
-        <input type="number" id="projectionYears" value="5" min="1" max="50">
-        <small>年</small>
+        <span>推估至幾歲？</span>
+        <input type="number" id="projectionEndAge" value="65" min="33" max="85">
+        <small>歲</small>
+        <em class="field-hint">可依需求調整，最多推估至 85 歲</em>
       </label>
 
     </div>
@@ -567,30 +568,19 @@
     <div class="projection-result">
 
       <div class="projection-main">
-
-        <span id="projectionYearsText">5 年後預估資產</span>
-
-        <strong id="futureAssets">
-          NT$ 0
-        </strong>
-        <div class="projection-retirement-age">
-          <span>依目前第 05 區假設，預估達成退休目標</span>
-          <strong id="projectionRetirementAge">尚未計算</strong>
-        </div>
-
+        <span>🎯 目前退休目標</span>
+        <strong id="projectionRetirementTarget">NT$ 0</strong>
+        <div class="projection-target-note">依第 04 區目前設定的退休年齡、生活費與通膨率估算</div>
       </div>
 
-
       <div class="projection-table">
-
         <div class="projection-row header">
-          <span>年份</span>
+          <span>年齡</span>
           <span>預估資產</span>
-          <span>距離退休目標</span>
+          <span>退休目標完成度</span>
+          <span>每月可動用</span>
         </div>
-
         <div id="projectionRows"></div>
-
       </div>
 
     </div>
