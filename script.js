@@ -680,7 +680,6 @@ document.addEventListener("DOMContentLoaded", function () {
     if (input) {
       input.min = currentAge;
       input.max = 85;
-      input.value = value;
     }
     return value;
   }
@@ -793,7 +792,11 @@ document.addEventListener("DOMContentLoaded", function () {
     row.setAttribute("data-age", age);
 
     var ageText = document.createElement("span");
+    var laborPensionStartAge = Math.max(getNumber("laborPensionClaimAge"), 60);
     ageText.textContent = age + " 歲";
+    if (age >= laborPensionStartAge) {
+      ageText.classList.add("labor-age-start");
+    }
     var assetText = document.createElement("span");
     assetText.textContent = formatNTD(assets);
     var completionText = document.createElement("span");
@@ -801,6 +804,11 @@ document.addEventListener("DOMContentLoaded", function () {
     completionText.textContent = completion.toFixed(0) + "%";
     var availableText = document.createElement("span");
     availableText.textContent = formatNTD(available.total);
+    var triangle = document.createElement("span");
+    triangle.className = "projection-expand-triangle";
+    triangle.setAttribute("aria-hidden", "true");
+    triangle.textContent = "▾";
+    availableText.appendChild(triangle);
 
     row.appendChild(ageText);
     row.appendChild(assetText);
@@ -817,12 +825,13 @@ document.addEventListener("DOMContentLoaded", function () {
     if (getActiveGoal() === "micro") {
       lines.push(formatNTD(available.salary) + "（薪資）");
     }
-    lines.push(formatNTD(available.fourPercent) + "（4%）");
-    lines.push(formatNTD(available.protection) + "（勞退／勞保）");
-    lines.push("＝ " + formatNTD(available.total) + "／月");
-    lines.forEach(function (text) {
+    lines.push({ text: formatNTD(available.fourPercent) + "（4%）" });
+    lines.push({ text: formatNTD(available.protection) + "（勞退／勞保）", labor: true });
+    lines.push({ text: "＝ " + formatNTD(available.total) + "／月" });
+    lines.forEach(function (item) {
       var line = document.createElement("div");
-      line.textContent = text;
+      line.textContent = item.text;
+      if (item.labor) line.classList.add("projection-labor-detail");
       detail.appendChild(line);
     });
     if (available.protection > 0) {
@@ -835,6 +844,7 @@ document.addEventListener("DOMContentLoaded", function () {
     projectionRows.appendChild(detail);
     row.addEventListener("click", function () {
       detail.classList.toggle("hidden");
+      row.classList.toggle("is-expanded", !detail.classList.contains("hidden"));
     });
   }
 
@@ -932,6 +942,15 @@ document.addEventListener("DOMContentLoaded", function () {
   });
   document.addEventListener("change", function (event) {
     var target = event.target;
+    if (target.id === "projectionEndAge") {
+      var currentAge = getGoalCurrentAge();
+      var value = Math.round(Number(target.value));
+      if (!isFinite(value)) value = currentAge;
+      value = Math.max(currentAge, Math.min(value, 85));
+      target.value = value;
+      updateAllRetirementCalculations();
+      return;
+    }
     if (
       target.closest("#cashList") ||
       target.closest("#investmentList") ||

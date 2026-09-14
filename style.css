@@ -1308,3 +1308,27 @@ footer {
     font-size: 12px;
   }
 }
+
+
+/* v4.1：第 05 區互動提示與勞退關聯視覺 */
+.projection-expand-triangle {
+  display: inline-block;
+  margin-left: 6px;
+  font-size: 12px;
+  opacity: .65;
+  transition: transform .18s ease;
+}
+.projection-row.is-expanded .projection-expand-triangle {
+  transform: rotate(180deg);
+}
+.labor-age-start {
+  color: var(--primary);
+  font-weight: 700;
+}
+.projection-labor-detail {
+  color: var(--primary);
+  font-weight: 600;
+  padding-left: 8px;
+  border-left: 3px solid var(--primary);
+  margin: 4px 0;
+}
