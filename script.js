@@ -801,7 +801,7 @@ document.addEventListener("DOMContentLoaded", function () {
     assetText.textContent = formatNTD(assets);
     var completionText = document.createElement("span");
     var completion = target > 0 ? assets / target * 100 : 0;
-    completionText.textContent = completion.toFixed(0) + "%";
+    completionText.textContent = completion >= 100 ? "已達成" : completion.toFixed(0) + "%";
     var availableText = document.createElement("span");
     availableText.textContent = formatNTD(available.total);
     var triangle = document.createElement("span");
@@ -823,7 +823,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
     var lines = [];
     if (getActiveGoal() === "micro") {
-      lines.push(formatNTD(available.salary) + "（薪資）");
+      lines.push({ text: formatNTD(available.salary) + "（本薪）" });
     }
     lines.push({ text: formatNTD(available.fourPercent) + "（4%）" });
     lines.push({ text: formatNTD(available.protection) + "（勞退／勞保）", labor: true });
