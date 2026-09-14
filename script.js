@@ -601,17 +601,26 @@ document.addEventListener("DOMContentLoaded", function () {
   }
 
   function getProjectedAssetBreakdownAtAge(targetAge) {
-    var data = getRetirementData();
+    /*
+       注意：這裡不能呼叫 getRetirementData()。
+       self 模式的退休目標會反過來呼叫本函式，若再取 getRetirementData()
+       會形成遞迴，導致切換模式後計算中斷。
+    */
+    var currentAge = getGoalCurrentAge();
     var projected = {
-      cash: data.balances.cash,
-      deposit: data.balances.deposit,
-      investment: data.balances.investment
+      cash: calculateCashTWD(),
+      deposit: calculateDepositTWD(),
+      investment: calculateInvestmentTWD()
     };
-    var months = Math.max(Math.ceil((targetAge - data.currentAge) * 12), 0);
+    var cashAnnualReturn = getNumber("cashAnnualReturn");
+    var depositAnnualReturn = getNumber("depositAnnualReturn");
+    var investmentAnnualReturn = getNumber("investmentAnnualReturn");
+    var monthlyInvestment = getNumber("monthlyInvestment");
+    var months = Math.max(Math.ceil((targetAge - currentAge) * 12), 0);
     for (var month = 0; month < months; month++) {
-      projected.cash *= 1 + data.cashAnnualReturn / 100 / 12;
-      projected.deposit *= 1 + data.depositAnnualReturn / 100 / 12;
-      projected.investment = projected.investment * (1 + data.investmentAnnualReturn / 100 / 12) + data.monthlyInvestment;
+      projected.cash *= 1 + cashAnnualReturn / 100 / 12;
+      projected.deposit *= 1 + depositAnnualReturn / 100 / 12;
+      projected.investment = projected.investment * (1 + investmentAnnualReturn / 100 / 12) + monthlyInvestment;
     }
     return projected;
   }
