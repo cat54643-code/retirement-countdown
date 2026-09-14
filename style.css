@@ -1165,3 +1165,65 @@ footer {
     font-size: 15px;
   }
 }
+
+/* =================================
+   新手引導／欄位提示
+================================= */
+.beginner-guide {
+  background: #f4f7ff;
+  border: 1px solid #dfe5ff;
+  border-radius: 17px;
+  padding: 15px 16px;
+  margin-bottom: 18px;
+  line-height: 1.65;
+}
+
+.beginner-guide strong {
+  display: block;
+  margin-bottom: 5px;
+}
+
+.beginner-guide p {
+  margin: 0;
+  color: #69748a;
+  font-size: 13px;
+}
+
+.field-hint {
+  display: block;
+  margin-top: 6px;
+  color: #8b94a3;
+  font-size: 11px;
+  line-height: 1.45;
+  font-style: normal;
+}
+
+.retirement-assumption-form {
+  margin-bottom: 18px;
+}
+
+.projection-retirement-age {
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(99,124,242,0.14);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  color: #75809a;
+  font-size: 13px;
+}
+
+.projection-retirement-age strong {
+  display: inline;
+  margin: 0;
+  font-size: 17px;
+}
+
+@media (max-width: 650px) {
+  .projection-retirement-age {
+    flex-direction: column;
+    gap: 4px;
+  }
+}

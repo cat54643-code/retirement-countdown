@@ -91,9 +91,9 @@
         <div class="goal-icon">🌱</div>
 
         <div class="goal-content">
-          <strong>微退休</strong>
+          <strong>FIRE（半退休）</strong>
           <span>降低工作量、保有部分收入</span>
-          <small>例如：每月工作收入 NT$30,000</small>
+          <small>以資產支應部分生活費，同時保有工作收入</small>
         </div>
 
         <div class="check">✓</div>
@@ -132,6 +132,7 @@
           <span>每月基本生活費</span>
           <input type="number" id="monthlyExpense" value="30000" min="0" step="1000">
           <small>NT$ / 月</small>
+          <em class="field-hint">建議包含房貸、保險、醫療等固定支出</em>
         </label>
 
       </div>
@@ -142,7 +143,7 @@
     <!-- 微退休設定 -->
     <div class="goal-setting hidden" id="microSetting">
 
-      <div class="setting-title">🌱 微退休設定</div>
+      <div class="setting-title">🌱 FIRE（半退休）設定</div>
 
       <div class="form-grid">
 
@@ -153,13 +154,13 @@
         </label>
 
         <label>
-          <span>預計微退休年齡</span>
+          <span>預計 FIRE（半退休）年齡</span>
           <input type="number" id="microRetireAge" value="38" min="18" max="100">
           <small>歲</small>
         </label>
 
         <label>
-          <span>微退休後每月工作收入</span>
+          <span>FIRE 後每月工作收入</span>
           <input type="number" id="microIncome" value="30000" min="0" step="1000">
           <small>NT$ / 月</small>
         </label>
@@ -168,12 +169,13 @@
           <span>每月生活費</span>
           <input type="number" id="microExpense" value="30000" min="0" step="1000">
           <small>NT$ / 月</small>
+          <em class="field-hint">建議包含房貸、保險、醫療等固定支出</em>
         </label>
 
       </div>
 
       <div class="info-box">
-        💡 微退休目標會自動計算「生活費 − 工作收入」後，
+        💡 FIRE（半退休）會自動計算「生活費 − 工作收入」後，
         由投資資產需要補足的金額。
       </div>
 
@@ -193,6 +195,10 @@
       </div>
     </div>
 
+    <div class="beginner-guide">
+      <strong>👋 第一次使用？先不用算得很精準</strong>
+      <p>現金＝活存／手上現金；投資＝股票／ETF／基金；定存＝台幣或外幣定存。<br>不知道精確數字時，先填目前大約金額即可，之後再補正。</p>
+    </div>
 
     <!-- 現金 -->
     <div class="asset-group">
@@ -378,6 +384,14 @@
     </div>
 
 
+    <div class="form-grid retirement-assumption-form">
+      <label>
+        <span>預估通膨率</span>
+        <input type="number" id="inflationRate" value="2" min="0" max="10" step="0.1">
+        <small>% / 年</small>
+      </label>
+    </div>
+
     <div class="result-grid">
 
       <div class="result-card">
@@ -396,7 +410,7 @@
       </div>
 
       <div class="result-card">
-        <span>目前預計退休年齡</span>
+        <span>設定退休年齡</span>
         <strong id="retirementAgeResult">55 歲</strong>
       </div>
 
@@ -408,8 +422,8 @@
       <strong>📌 試算方式</strong>
 
       <p>
-        本工具目前以「4% 提領率」作為退休資產需求的基礎假設。
-        實際退休規劃仍需考量通膨、投資報酬率、稅務及醫療支出。
+        本工具以「4% 提領率」估算退休資產需求，並會依你設定的退休年齡與通膨率，把生活費換算成退休當年的金額。
+        這一區只負責計算「需要多少錢」，不會因第 05 區的投資報酬率或每月投入金額而改變。
       </p>
 
     </div>
@@ -433,8 +447,20 @@
     <div class="form-grid projection-form">
 
       <label>
-        <span>預估年報酬率</span>
-        <input type="number" id="annualReturn" value="6" step="0.5">
+        <span>現金年報酬率</span>
+        <input type="number" id="cashAnnualReturn" value="0" step="0.1">
+        <small>%</small>
+      </label>
+
+      <label>
+        <span>定存年報酬率</span>
+        <input type="number" id="depositAnnualReturn" value="2" step="0.1">
+        <small>%</small>
+      </label>
+
+      <label>
+        <span>投資年報酬率</span>
+        <input type="number" id="investmentAnnualReturn" value="6" step="0.1">
         <small>%</small>
       </label>
 
@@ -462,6 +488,10 @@
         <strong id="futureAssets">
           NT$ 0
         </strong>
+        <div class="projection-retirement-age">
+          <span>依目前第 05 區假設，預估達成退休目標</span>
+          <strong id="projectionRetirementAge">尚未計算</strong>
+        </div>
 
       </div>
 

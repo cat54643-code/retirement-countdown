@@ -108,6 +108,7 @@ document.addEventListener("DOMContentLoaded", function () {
      3. 現金｜建立單筆折疊項目
   ===================================================== */
   function createCashItem(itemData) {
+    var isNewItem = !itemData || Object.keys(itemData).length === 0;
     var cashList = document.getElementById("cashList");
     if (!cashList) return null;
     itemData = itemData || {};
@@ -154,6 +155,10 @@ document.addEventListener("DOMContentLoaded", function () {
     var displayValue = box.querySelector(".cash-display-value");
     var toggle = box.querySelector(".cash-toggle");
     var details = box.querySelector(".cash-details");
+    if (isNewItem && details) {
+      details.style.display = "block";
+      if (toggle) toggle.textContent = "▲";
+    }
     if (name) name.value = itemData.name || "";
     if (amount) amount.value = itemData.amount || "0";
     if (currency) currency.value = itemData.currency || "TWD";
@@ -199,6 +204,7 @@ document.addEventListener("DOMContentLoaded", function () {
      4. 投資｜建立單筆折疊項目
   ===================================================== */
   function createInvestmentItem(itemData) {
+    var isNewItem = !itemData || Object.keys(itemData).length === 0;
     var investmentList = document.getElementById("investmentList");
     if (!investmentList) return null;
     itemData = itemData || {};
@@ -269,6 +275,10 @@ document.addEventListener("DOMContentLoaded", function () {
     var displayValue = box.querySelector(".investment-display-value");
     var toggle = box.querySelector(".investment-toggle");
     var details = box.querySelector(".investment-details");
+    if (isNewItem && details) {
+      details.style.display = "block";
+      if (toggle) toggle.textContent = "▲";
+    }
     symbol.value = itemData.symbol || "";
     market.value = itemData.market || "TW";
     currency.value = itemData.currency || "TWD";
@@ -327,6 +337,7 @@ document.addEventListener("DOMContentLoaded", function () {
      5. 定存｜建立單筆折疊項目
   ===================================================== */
   function createDepositItem(itemData) {
+    var isNewItem = !itemData || Object.keys(itemData).length === 0;
     var depositList = document.getElementById("depositList");
     if (!depositList) return null;
     itemData = itemData || {};
@@ -384,6 +395,10 @@ document.addEventListener("DOMContentLoaded", function () {
     var interest = box.querySelector(".deposit-interest");
     var toggle = box.querySelector(".deposit-toggle");
     var details = box.querySelector(".deposit-details");
+    if (isNewItem && details) {
+      details.style.display = "block";
+      if (toggle) toggle.textContent = "▲";
+    }
     name.value = itemData.name || "";
     amount.value = itemData.amount || "0";
     currency.value = itemData.currency || "TWD";
@@ -530,54 +545,78 @@ document.addEventListener("DOMContentLoaded", function () {
   /* =====================================================
      8. 退休試算共同核心
   ===================================================== */
-  function getRetirementData() {
+  function getGoalCurrentAge() {
+    return getActiveGoal() === "micro"
+      ? getNumber("microCurrentAge")
+      : getNumber("currentAge");
+  }
+
+  function getPlannedRetirementAge() {
+    return getActiveGoal() === "micro"
+      ? getNumber("microRetireAge")
+      : getNumber("fullRetireAge");
+  }
+
+  function getBaseAnnualNeed() {
     var goal = getActiveGoal();
     var travelBudget = getTravelBudget();
-    var annualNeed = 0;
-    var currentAge = 0;
     if (goal === "micro") {
       var microExpense = getNumber("microExpense");
       var microIncome = getNumber("microIncome");
-      var monthlyGap = Math.max(microExpense - microIncome, 0);
-      annualNeed = monthlyGap * 12 + travelBudget;
-      currentAge = getNumber("microCurrentAge");
-    } else {
-      annualNeed = getNumber("monthlyExpense") * 12 + travelBudget;
-      currentAge = getNumber("currentAge");
+      return Math.max(microExpense - microIncome, 0) * 12 + travelBudget;
     }
-    var retirementTarget = annualNeed / 0.04;
-    var currentAssets =
-      calculateCashTWD() +
-      calculateInvestmentTWD() +
-      calculateDepositTWD();
+    return getNumber("monthlyExpense") * 12 + travelBudget;
+  }
+
+  function getInflationRate() {
+    return Math.max(0, getNumber("inflationRate"));
+  }
+
+  function calculateAnnualNeedAtAge(age) {
+    var currentAge = getGoalCurrentAge();
+    var years = Math.max(0, age - currentAge);
+    return getBaseAnnualNeed() * Math.pow(1 + getInflationRate() / 100, years);
+  }
+
+  function calculateRetirementTargetAtAge(age) {
+    return calculateAnnualNeedAtAge(age) / 0.04;
+  }
+
+  function getAssetBalances() {
     return {
-      goal: goal,
+      cash: calculateCashTWD(),
+      investment: calculateInvestmentTWD(),
+      deposit: calculateDepositTWD()
+    };
+  }
+
+  function getRetirementData() {
+    var currentAge = getGoalCurrentAge();
+    var plannedRetirementAge = getPlannedRetirementAge();
+    var balances = getAssetBalances();
+    var currentAssets = balances.cash + balances.investment + balances.deposit;
+    var annualNeed = calculateAnnualNeedAtAge(plannedRetirementAge);
+    var retirementTarget = annualNeed / 0.04;
+
+    return {
+      goal: getActiveGoal(),
+      currentAge: currentAge,
+      plannedRetirementAge: plannedRetirementAge,
+      baseAnnualNeed: getBaseAnnualNeed(),
       annualNeed: annualNeed,
       retirementTarget: retirementTarget,
       currentAssets: currentAssets,
-      currentAge: currentAge,
-      annualReturn: getNumber("annualReturn"),
+      cashAssets: balances.cash,
+      investmentAssets: balances.investment,
+      depositAssets: balances.deposit,
+      inflationRate: getInflationRate(),
+      cashAnnualReturn: getNumber("cashAnnualReturn"),
+      depositAnnualReturn: getNumber("depositAnnualReturn"),
+      investmentAnnualReturn: getNumber("investmentAnnualReturn"),
       monthlyInvestment: getNumber("monthlyInvestment")
     };
   }
-  function calculateAnnualNeed(goal) {
-    var annualNeed = 0;
-    var travelBudget = getTravelBudget();
-    if (goal === "micro") {
-      annualNeed = Math.max(
-        getNumber("microExpense") - getNumber("microIncome"),
-        0
-      ) * 12 + travelBudget;
-    } else {
-      annualNeed = getNumber("monthlyExpense") * 12 + travelBudget;
 
-          }
-    var element = document.getElementById("annualNeed");
-    if (element) element.textContent = formatNTD(annualNeed);
-  }
-  /* =====================================================
-     9. 退休目標 / 達成率
-  ===================================================== */
   function updateRetirementDisplay() {
     var data = getRetirementData();
     var annualNeedElement = document.getElementById("annualNeed");
@@ -587,8 +626,11 @@ document.addEventListener("DOMContentLoaded", function () {
     var progressBar = document.getElementById("progressBar");
     var progressCurrent = document.getElementById("progressCurrent");
     var progressTarget = document.getElementById("progressTarget");
+    var retirementAgeElement = document.getElementById("retirementAgeResult");
+
     if (annualNeedElement) annualNeedElement.textContent = formatNTD(data.annualNeed);
     if (targetElement) targetElement.textContent = formatNTD(data.retirementTarget);
+
     var remaining = Math.max(data.retirementTarget - data.currentAssets, 0);
     if (remainingElement) {
       remainingElement.textContent =
@@ -596,48 +638,72 @@ document.addEventListener("DOMContentLoaded", function () {
           ? "已達成 🎉"
           : formatNTD(remaining);
     }
+
     var progress = data.retirementTarget > 0
       ? data.currentAssets / data.retirementTarget * 100
       : 0;
     progress = Math.max(0, Math.min(progress, 100));
+
     if (progressPercentElement) {
       progressPercentElement.textContent = progress.toFixed(1) + "%";
     }
     if (progressBar) progressBar.style.width = progress + "%";
     if (progressCurrent) progressCurrent.textContent = formatNTD(data.currentAssets);
     if (progressTarget) progressTarget.textContent = formatNTD(data.retirementTarget);
+    if (retirementAgeElement) {
+      retirementAgeElement.textContent =
+        data.plannedRetirementAge > 0
+          ? data.plannedRetirementAge.toFixed(1) + " 歲"
+          : "尚未設定";
+    }
   }
+
   /* =====================================================
-     10. 預計退休年齡
+     9. 預計退休年齡
+     - 屬於第 05 區的成長假設結果
+     - 不再回寫第 04 區
   ===================================================== */
   function calculateRetirementAge() {
     var data = getRetirementData();
-    var resultElement = document.getElementById("retirementAgeResult");
+    var resultElement = document.getElementById("projectionRetirementAge");
     if (!resultElement) return;
-    if (data.retirementTarget <= 0) {
-      resultElement.textContent = "立即達成 🎉";
+
+    if (data.currentAssets <= 0 && data.monthlyInvestment <= 0) {
+      resultElement.textContent = "尚未達成";
       return;
     }
-    if (data.currentAssets >= data.retirementTarget) {
-      resultElement.textContent = data.currentAge.toFixed(1) + " 歲";
-      return;
-    }
-    var monthlyRate = data.annualReturn / 100 / 12;
-    var projectedAssets = data.currentAssets;
-    var estimatedAge = null;
-    for (var month = 1; month <= 1200; month++) {
-      projectedAssets =
-        projectedAssets * (1 + monthlyRate) + data.monthlyInvestment;
-      if (projectedAssets >= data.retirementTarget) {
-        estimatedAge = data.currentAge + month / 12;
-        break;
+
+    var balances = {
+      cash: data.cashAssets,
+      investment: data.investmentAssets,
+      deposit: data.depositAssets
+    };
+
+    var maxMonths = 1200;
+    for (var month = 0; month <= maxMonths; month++) {
+      var age = data.currentAge + month / 12;
+      var target = calculateRetirementTargetAtAge(age);
+
+      var total = balances.cash + balances.investment + balances.deposit;
+      if (total >= target) {
+        resultElement.textContent = age.toFixed(1) + " 歲";
+        return;
       }
+
+      if (month === maxMonths) break;
+
+      balances.cash *= 1 + data.cashAnnualReturn / 100 / 12;
+      balances.deposit *= 1 + data.depositAnnualReturn / 100 / 12;
+      balances.investment =
+        balances.investment * (1 + data.investmentAnnualReturn / 100 / 12) +
+        data.monthlyInvestment;
     }
-    resultElement.textContent =
-      estimatedAge === null ? "尚未達成" : estimatedAge.toFixed(1) + " 歲";
+
+    resultElement.textContent = "尚未達成";
   }
+
   /* =====================================================
-     11. 資產成長預估
+     10. 資產成長預估
   ===================================================== */
   function calculateProjection() {
     var data = getRetirementData();
@@ -645,50 +711,73 @@ document.addEventListener("DOMContentLoaded", function () {
     var futureAssetsElement = document.getElementById("futureAssets");
     var projectionYearsText = document.getElementById("projectionYearsText");
     var projectionRows = document.getElementById("projectionRows");
+
     if (!futureAssetsElement || !projectionRows) return;
     projectionRows.innerHTML = "";
+
     if (years <= 0) {
       futureAssetsElement.textContent = "NT$ 0";
       return;
     }
-    var monthlyRate = data.annualReturn / 100 / 12;
-    var projectedAssets = data.currentAssets;
+
+    var balances = {
+      cash: data.cashAssets,
+      investment: data.investmentAssets,
+      deposit: data.depositAssets
+    };
+
     for (var year = 1; year <= years; year++) {
       for (var month = 1; month <= 12; month++) {
-        projectedAssets =
-          projectedAssets * (1 + monthlyRate) + data.monthlyInvestment;
+        balances.cash *= 1 + data.cashAnnualReturn / 100 / 12;
+        balances.deposit *= 1 + data.depositAnnualReturn / 100 / 12;
+        balances.investment =
+          balances.investment * (1 + data.investmentAnnualReturn / 100 / 12) +
+          data.monthlyInvestment;
       }
+
+      var projectedAssets =
+        balances.cash + balances.investment + balances.deposit;
       var gap = Math.max(data.retirementTarget - projectedAssets, 0);
+
       var row = document.createElement("div");
       row.className = "projection-row";
+
       var yearText = document.createElement("span");
       yearText.textContent = "第 " + year + " 年";
+
       var assetText = document.createElement("span");
       assetText.textContent = formatNTD(projectedAssets);
+
       var gapText = document.createElement("span");
       gapText.textContent =
         data.retirementTarget > 0 && projectedAssets >= data.retirementTarget
           ? "已達成 🎉"
           : formatNTD(gap);
+
       row.appendChild(yearText);
       row.appendChild(assetText);
       row.appendChild(gapText);
       projectionRows.appendChild(row);
     }
-    futureAssetsElement.textContent = formatNTD(projectedAssets);
+
+    var futureAssets =
+      balances.cash + balances.investment + balances.deposit;
+    futureAssetsElement.textContent = formatNTD(futureAssets);
+
     if (projectionYearsText) {
       projectionYearsText.textContent = years + " 年後預估資產";
     }
   }
+
   function updateAllRetirementCalculations() {
     updateAssetTotals();
-    calculateAnnualNeed(getActiveGoal());
     updateRetirementDisplay();
     calculateRetirementAge();
     calculateProjection();
   }
+
   /* =====================================================
-     12. 統一監聽輸入變更
+     11. 統一監聽輸入變更
   ===================================================== */
   document.addEventListener("input", function (event) {
     var target = event.target;
@@ -704,13 +793,17 @@ document.addEventListener("DOMContentLoaded", function () {
       target.id === "microRetireAge" ||
       target.id === "microIncome" ||
       target.id === "microExpense" ||
-      target.id === "annualReturn" ||
+      target.id === "inflationRate" ||
+      target.id === "cashAnnualReturn" ||
+      target.id === "depositAnnualReturn" ||
+      target.id === "investmentAnnualReturn" ||
       target.id === "monthlyInvestment" ||
       target.id === "projectionYears"
     ) {
       updateAllRetirementCalculations();
     }
   });
+
   document.addEventListener("change", function (event) {
     var target = event.target;
     if (
@@ -722,6 +815,7 @@ document.addEventListener("DOMContentLoaded", function () {
       updateAllRetirementCalculations();
     }
   });
+
   /* =====================================================
      13. 儲存資料
   ===================================================== */
@@ -736,7 +830,10 @@ document.addEventListener("DOMContentLoaded", function () {
       "microRetireAge",
       "microIncome",
       "microExpense",
-      "annualReturn",
+      "inflationRate",
+      "cashAnnualReturn",
+      "depositAnnualReturn",
+      "investmentAnnualReturn",
       "monthlyInvestment",
       "projectionYears"
     ];
@@ -843,6 +940,12 @@ document.addEventListener("DOMContentLoaded", function () {
     } catch (error) {
       return;
     }
+    /* 舊版資料相容：舊版只有 annualReturn，載入後先套用到三類資產，避免舊試算結果突然改變。 */
+    if (data.annualReturn !== undefined) {
+      if (data.cashAnnualReturn === undefined) data.cashAnnualReturn = data.annualReturn;
+      if (data.depositAnnualReturn === undefined) data.depositAnnualReturn = data.annualReturn;
+      if (data.investmentAnnualReturn === undefined) data.investmentAnnualReturn = data.annualReturn;
+    }
     var ids = [
       "currentAge",
       "fullRetireAge",
@@ -852,7 +955,10 @@ document.addEventListener("DOMContentLoaded", function () {
       "microRetireAge",
       "microIncome",
       "microExpense",
-      "annualReturn",
+      "inflationRate",
+      "cashAnnualReturn",
+      "depositAnnualReturn",
+      "investmentAnnualReturn",
       "monthlyInvestment",
       "projectionYears"
     ];
