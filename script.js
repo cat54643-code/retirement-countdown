@@ -600,31 +600,53 @@ document.addEventListener("DOMContentLoaded", function () {
     return getInheritancePlan() === "self";
   }
 
-  function getWeightedRetirementReturn() {
-    var balances = getAssetBalances();
-    var total = balances.cash + balances.deposit + balances.investment;
+  function getProjectedAssetBreakdownAtAge(targetAge) {
+    var data = getRetirementData();
+    var projected = {
+      cash: data.balances.cash,
+      deposit: data.balances.deposit,
+      investment: data.balances.investment
+    };
+    var months = Math.max(Math.ceil((targetAge - data.currentAge) * 12), 0);
+    for (var month = 0; month < months; month++) {
+      projected.cash *= 1 + data.cashAnnualReturn / 100 / 12;
+      projected.deposit *= 1 + data.depositAnnualReturn / 100 / 12;
+      projected.investment = projected.investment * (1 + data.investmentAnnualReturn / 100 / 12) + data.monthlyInvestment;
+    }
+    return projected;
+  }
+
+  function getRetirementAnnualReturnAtAge(retirementAge) {
+    var projected = getProjectedAssetBreakdownAtAge(retirementAge);
+    var total = projected.cash + projected.deposit + projected.investment;
     if (total <= 0) return getNumber("investmentAnnualReturn");
     return (
-      balances.cash * getNumber("cashAnnualReturn") +
-      balances.deposit * getNumber("depositAnnualReturn") +
-      balances.investment * getNumber("investmentAnnualReturn")
+      projected.cash * getNumber("cashAnnualReturn") +
+      projected.deposit * getNumber("depositAnnualReturn") +
+      projected.investment * getNumber("investmentAnnualReturn")
     ) / total;
   }
 
-  function getMonthlyPlanningIncomeAtAge(age) {
+  function getPostRetirementMonthlyIncomeAtAge(age, retirementAge) {
     var goal = getActiveGoal();
     var salary = goal === "micro" ? getNumber("microIncome") : 0;
-    var laborPension = getLaborPensionBalanceAtAge(age);
-    var pensionMonthly = laborPension.available ? laborPension.balance * 0.04 / 12 : 0;
+    var pensionClaimAge = Math.max(getNumber("laborPensionClaimAge"), 60);
+    var laborPension = 0;
+    if (age >= pensionClaimAge) {
+      var pensionBalanceAge = Math.max(retirementAge, pensionClaimAge);
+      var pension = getLaborPensionBalanceAtAge(pensionBalanceAge);
+      laborPension = pension.balance * 0.04 / 12;
+    }
     var laborInsurance = getLaborInsuranceMonthlyAtAge(age);
-    return salary + pensionMonthly + laborInsurance;
+    return salary + laborPension + laborInsurance;
   }
 
   function calculateSpendDownTargetAtAge(age) {
     var endAge = 85;
     if (age >= endAge) return 0;
 
-    var monthlyRate = getWeightedRetirementReturn() / 100 / 12;
+    var annualReturn = getRetirementAnnualReturnAtAge(age);
+    var monthlyRate = annualReturn / 100 / 12;
     var baseAnnualNeed = calculateAnnualNeedAtAge(age);
     var months = Math.ceil((endAge - age) * 12);
     var presentValue = 0;
@@ -633,7 +655,7 @@ document.addEventListener("DOMContentLoaded", function () {
       var years = month / 12;
       var annualNeedAtMonth = baseAnnualNeed * Math.pow(1 + getInflationRate() / 100, years);
       var monthlyNeed = annualNeedAtMonth / 12;
-      var monthlyIncome = getMonthlyPlanningIncomeAtAge(age + month / 12);
+      var monthlyIncome = getPostRetirementMonthlyIncomeAtAge(age + month / 12, age);
       var withdrawal = Math.max(monthlyNeed - monthlyIncome, 0);
       presentValue += withdrawal / Math.pow(1 + monthlyRate, month + 1);
     }
@@ -819,18 +841,7 @@ document.addEventListener("DOMContentLoaded", function () {
   }
 
   function calculateAssetsAtAgeWithoutRetirementWithdrawals(targetAge) {
-    var data = getRetirementData();
-    var projected = {
-      cash: data.balances.cash,
-      deposit: data.balances.deposit,
-      investment: data.balances.investment
-    };
-    var months = Math.max(Math.ceil((targetAge - data.currentAge) * 12), 0);
-    for (var month = 0; month < months; month++) {
-      projected.cash *= 1 + data.cashAnnualReturn / 100 / 12;
-      projected.deposit *= 1 + data.depositAnnualReturn / 100 / 12;
-      projected.investment = projected.investment * (1 + data.investmentAnnualReturn / 100 / 12) + data.monthlyInvestment;
-    }
+    var projected = getProjectedAssetBreakdownAtAge(targetAge);
     return projected.cash + projected.deposit + projected.investment;
   }
 
@@ -840,16 +851,15 @@ document.addEventListener("DOMContentLoaded", function () {
 
     var data = getRetirementData();
     var assets = Math.max(retirementAssets || 0, 0);
-    var monthlyRate = getWeightedRetirementReturn() / 100 / 12;
-    var inflationMonthly = Math.pow(1 + data.inflationRate / 100, 1 / 12) - 1;
-    var baseAnnualNeed = calculateAnnualNeedAtAge(retirementAge);
+    var annualReturn = getRetirementAnnualReturnAtAge(retirementAge);
+    var monthlyRate = annualReturn / 100 / 12;
     var months = Math.ceil((endAge - retirementAge) * 12);
 
     for (var month = 0; month < months; month++) {
       assets *= 1 + monthlyRate;
-      var annualNeed = baseAnnualNeed * Math.pow(1 + data.inflationRate / 100, month / 12);
+      var annualNeed = calculateAnnualNeedAtAge(retirementAge) * Math.pow(1 + data.inflationRate / 100, month / 12);
       var monthlyNeed = annualNeed / 12;
-      var monthlyIncome = getMonthlyPlanningIncomeAtAge(retirementAge + month / 12);
+      var monthlyIncome = getPostRetirementMonthlyIncomeAtAge(retirementAge + month / 12, retirementAge);
       assets -= Math.max(monthlyNeed - monthlyIncome, 0);
       if (assets < 0) assets = 0;
     }
@@ -914,6 +924,15 @@ document.addEventListener("DOMContentLoaded", function () {
       else {
         var age85Element = document.getElementById("age85Remaining");
         if (age85Element) age85Element.textContent = "尚無法估算";
+      }
+    }
+
+    var noteElement = document.getElementById("calculationNoteText");
+    if (noteElement) {
+      if (isSpendDownPlan()) {
+        noteElement.textContent = "本模式以退休後一路規劃至85歲，將通膨、退休後投資報酬率與勞退／勞保等收入納入試算，目標達成時85歲資產預期接近0。";
+      } else {
+        noteElement.textContent = "本模式以4%方式估算退休所需資產；85歲剩餘資產則依目前填寫的報酬率、通膨與退休後收入實際試算，因此不保證一定大於0。";
       }
     }
   }
