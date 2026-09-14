@@ -640,15 +640,34 @@ document.addEventListener("DOMContentLoaded", function () {
   function getLaborPensionMonthlyAfterRetirement(age, retirementAge) {
     var claimAge = Math.max(getNumber("laborPensionClaimAge"), 60);
     if (age < claimAge) return 0;
-    var pensionAtRetirement = getLaborPensionBalanceAtAge(Math.min(retirementAge, age));
-    var annualReturn = getNumber("laborPensionReturn");
-    var months = Math.max(Math.round((claimAge - Math.min(retirementAge, claimAge)) * 12), 0);
-    var balanceAtClaim = pensionAtRetirement.balance;
-    var monthlyRate = annualReturn / 100 / 12;
-    for (var month = 0; month < months; month++) {
-      balanceAtClaim *= 1 + monthlyRate;
+
+    // 請領金額獨立於「是否已找到預估退休年齡」。
+    // retirementAge 有值時，代表退休後停止提撥；沒有值時則先依設定的工作年齡估算。
+    var currentAge = getGoalCurrentAge();
+    var workUntilAge = getNumber("laborInsuranceWorkUntilAge");
+    if (retirementAge != null && isFinite(retirementAge)) {
+      workUntilAge = Math.min(workUntilAge, retirementAge);
     }
-    return balanceAtClaim * 0.04 / 12;
+
+    var balance = getNumber("laborPensionBalance");
+    var salary = getNumber("laborPensionSalary");
+    var employerRate = Math.min(Math.max(getNumber("laborPensionEmployerRate"), 0), 6);
+    var selfRate = Math.min(Math.max(getNumber("laborPensionSelfRate"), 0), 6);
+    var annualReturn = getNumber("laborPensionReturn");
+    var monthlyRate = annualReturn / 100 / 12;
+    var claimMonths = Math.max(Math.round((claimAge - currentAge) * 12), 0);
+    var contributionMonths = Math.max(
+      Math.min(Math.round((workUntilAge - currentAge) * 12), claimMonths),
+      0
+    );
+
+    for (var month = 1; month <= claimMonths; month++) {
+      balance *= 1 + monthlyRate;
+      if (month <= contributionMonths) {
+        balance += salary * (employerRate + selfRate) / 100;
+      }
+    }
+    return Math.max(balance, 0) * 0.04 / 12;
   }
 
   function getPostRetirementMonthlyIncomeAtAge(age, retirementAge) {
@@ -861,12 +880,20 @@ document.addEventListener("DOMContentLoaded", function () {
   function getMonthlyAvailableAtAge(age, projectedAssets, retirementAge) {
     var goal = getActiveGoal();
     var salary = goal === "micro" ? getNumber("microIncome") : 0;
-    var laborPensionMonthly = retirementAge != null ? getLaborPensionMonthlyAfterRetirement(age, retirementAge) : 0;
-    var laborInsuranceMonthly = retirementAge != null ? getLaborInsuranceMonthlyAtAge(age, retirementAge) : 0;
+
+    // 退休金是「年齡條件」而非「預估退休年齡」條件。
+    // 因此即使目前尚未找到可退休的年齡，60歲後符合請領條件的退休金仍會顯示。
+    var laborPensionMonthly = getLaborPensionMonthlyAfterRetirement(age, retirementAge);
+    var laborInsuranceMonthly = getLaborInsuranceMonthlyAtAge(age, retirementAge);
     var protection = laborPensionMonthly + laborInsuranceMonthly;
     var fourPercent = projectedAssets * 0.04 / 12;
     var isRetirementPhase = retirementAge != null && age >= retirementAge;
-    var planningWithdrawal = isRetirementPhase ? Math.max(calculateAnnualNeedAtAge(age) / 12 - salary - protection, 0) : 0;
+
+    // 只有真正進入退休階段，才從資產補足生活費缺口。
+    var planningWithdrawal = isRetirementPhase
+      ? Math.max(calculateAnnualNeedAtAge(age) / 12 - salary - protection, 0)
+      : 0;
+
     var total = salary + planningWithdrawal + protection;
     return {
       salary: salary,
