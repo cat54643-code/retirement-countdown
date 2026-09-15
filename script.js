@@ -897,31 +897,6 @@ document.addEventListener("DOMContentLoaded", function () {
     return monthlyBenefit;
   }
 
-  function calculateExtraSpendDownWithdrawalAtAge(age, projectedAssets, retirementAge) {
-    if (!isSpendDownPlan() || retirementAge == null || age < retirementAge || age >= getLifeExpectancyAge()) return 0;
-
-    var endAge = getLifeExpectancyAge();
-    var annualReturn = getRetirementAnnualReturnAtAge(retirementAge);
-    var monthlyRate = annualReturn / 100 / 12;
-    var remainingMonths = Math.max(Math.ceil((endAge - age) * 12), 0);
-    if (remainingMonths <= 0 || projectedAssets <= 0) return 0;
-
-    var amortizationWithdrawal = 0;
-    if (Math.abs(monthlyRate) < 0.0000000001) {
-      amortizationWithdrawal = projectedAssets / remainingMonths;
-    } else {
-      var growth = Math.pow(1 + monthlyRate, remainingMonths);
-      amortizationWithdrawal = projectedAssets * (monthlyRate * growth) / (growth - 1);
-    }
-
-    var currentAge = getGoalCurrentAge();
-    var annualExpense = getBaseAnnualExpense() * Math.pow(1 + getInflationRate() / 100, Math.max(age - currentAge, 0));
-    var monthlyExpense = annualExpense / 12;
-    var monthlyIncome = getPostRetirementMonthlyIncomeAtAge(age, retirementAge);
-    var baseWithdrawal = Math.max(monthlyExpense - monthlyIncome, 0);
-    return Math.max(amortizationWithdrawal - baseWithdrawal, 0);
-  }
-
   function getMonthlyAvailableAtAge(age, projectedAssets, retirementAge) {
     var goal = getActiveGoal();
     var salary = goal === "micro" ? getNumber("microIncome") : 0;
@@ -936,7 +911,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
     // 只有真正進入退休階段，才從資產補足生活費缺口。
     var planningWithdrawal = isRetirementPhase
-      ? Math.max(calculateAnnualExpenseAtAge(age) / 12 - salary - protection, 0) + calculateExtraSpendDownWithdrawalAtAge(age, projectedAssets, retirementAge)
+      ? Math.max(calculateAnnualExpenseAtAge(age) / 12 - salary - protection, 0)
       : 0;
 
     var total = salary + planningWithdrawal + protection;
@@ -969,16 +944,35 @@ document.addEventListener("DOMContentLoaded", function () {
     return projected;
   }
 
+  function getAnnuityFactor(monthlyRate, months) {
+    if (months <= 0) return 0;
+    if (Math.abs(monthlyRate) < 0.0000000001) return months;
+    return (1 - Math.pow(1 + monthlyRate, -months)) / monthlyRate;
+  }
+
   function simulateRetirementCashFlow(retirementAge, retirementAssets, endAge) {
     var assets = Math.max(retirementAssets || 0, 0);
     var annualReturn = getRetirementAnnualReturnAtAge(retirementAge);
     var monthlyRate = annualReturn / 100 / 12;
-    var months = Math.max(Math.ceil((endAge - retirementAge) * 12), 0);
+    var planningEndAge = getLifeExpectancyAge();
+    var monthsToEnd = Math.max(Math.ceil((planningEndAge - retirementAge) * 12), 0);
+    var monthsToDisplay = Math.max(Math.min(Math.ceil((endAge - retirementAge) * 12), monthsToEnd), 0);
     var baseAnnualExpense = getBaseAnnualExpense();
     var inflationRate = getInflationRate();
     var snapshots = [];
 
-    for (var month = 0; month < months; month++) {
+    // self 模式：先算「基本生活需求」的現值，再把退休時多出的資產
+    // 用固定的額外月提領攤到規劃終點。不能每次只模擬到當前顯示年齡，
+    // 否則 39 歲的 12 個月會被誤當成「12 個月內花完全部退休資產」。
+    var extraMonthlyWithdrawal = 0;
+    if (isSpendDownPlan() && monthsToEnd > 0) {
+      var baseTarget = calculateSpendDownTargetAtAge(retirementAge);
+      var surplus = Math.max(assets - baseTarget, 0);
+      var annuityFactor = getAnnuityFactor(monthlyRate, monthsToEnd);
+      extraMonthlyWithdrawal = annuityFactor > 0 ? surplus / annuityFactor : 0;
+    }
+
+    for (var month = 0; month < monthsToDisplay; month++) {
       assets *= 1 + monthlyRate;
 
       var years = month / 12;
@@ -986,29 +980,15 @@ document.addEventListener("DOMContentLoaded", function () {
       var monthlyExpense = annualExpense / 12;
       var monthlyIncome = getPostRetirementMonthlyIncomeAtAge(retirementAge + month / 12, retirementAge);
       var baseWithdrawal = Math.max(monthlyExpense - monthlyIncome, 0);
-
-      // self 模式的核心：退休後不只是「剛好夠花」，而是把退休時已有的資產
-      // 在規劃終點前用完。每月最低提領為生活費缺口；若資產較多，則以剩餘
-      // 期間的本金攤還額為基準，確保資產在退休後不會因報酬率高於支出而越滾越大。
-      var remainingMonths = months - month;
-      var amortizationWithdrawal = 0;
-      if (assets > 0 && remainingMonths > 0) {
-        if (Math.abs(monthlyRate) < 0.0000000001) {
-          amortizationWithdrawal = assets / remainingMonths;
-        } else {
-          var growth = Math.pow(1 + monthlyRate, remainingMonths);
-          amortizationWithdrawal = assets * (monthlyRate * growth) / (growth - 1);
-        }
-      }
-
       var withdrawal = isSpendDownPlan()
-        ? Math.max(baseWithdrawal, amortizationWithdrawal)
+        ? baseWithdrawal + extraMonthlyWithdrawal
         : baseWithdrawal;
+
       if (withdrawal > assets) withdrawal = assets;
       assets -= withdrawal;
       if (assets < 0) assets = 0;
 
-      if ((month + 1) % 12 === 0 || month === months - 1) {
+      if ((month + 1) % 12 === 0 || month === monthsToDisplay - 1) {
         snapshots.push({
           age: retirementAge + (month + 1) / 12,
           assets: assets,

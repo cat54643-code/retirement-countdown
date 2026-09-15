@@ -422,6 +422,18 @@
       </label>
     </div>
 
+    <div class="planning-subsection">
+      <div class="sub-title">📈 退休前累積規劃</div>
+      <div class="form-grid">
+        <label>
+          <span>退休前每月新增投資</span>
+          <input type="number" id="monthlyInvestment" value="20000" step="1000">
+          <small>NT$ / 月</small>
+          <em class="field-hint">自動持續投入至設定的退休／FIRE年齡；退休後預設停止</em>
+        </label>
+      </div>
+    </div>
+
     <div class="result-grid">
 
       <div class="result-card">
@@ -585,16 +597,10 @@
       </label>
 
       <label>
-        <span>每月新增投資</span>
-        <input type="number" id="monthlyInvestment" value="20000" step="1000">
-        <small>NT$ / 月</small>
-      </label>
-
-      <label>
         <span>推估至幾歲？</span>
         <input type="number" id="projectionEndAge" value="65" min="33" max="85">
         <small>歲</small>
-        <em class="field-hint">可依需求調整，最多推估至 85 歲</em>
+        <em class="field-hint">只控制年齡軌跡顯示到幾歲，不代表持續投資到這個年齡</em>
       </label>
 
     </div>

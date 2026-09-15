@@ -1352,3 +1352,16 @@ footer {
   border-left: 3px solid var(--primary);
   margin: 4px 0;
 }
+
+
+/* v4.7.4 retirement-before-accumulation block */
+.planning-subsection {
+  margin-top: 18px;
+  padding: 16px;
+  border: 1px solid #e4e7ef;
+  border-radius: 14px;
+  background: #fafbff;
+}
+.planning-subsection .sub-title {
+  margin-bottom: 10px;
+}
