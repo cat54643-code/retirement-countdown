@@ -1365,3 +1365,31 @@ footer {
 .planning-subsection .sub-title {
   margin-bottom: 10px;
 }
+
+/* v4.7.5：品牌 Logo */
+.site-logo {
+  display: block;
+  width: min(430px, 72vw);
+  line-height: 0;
+  text-decoration: none;
+}
+
+.site-logo img {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+@media (max-width: 650px) {
+  .header {
+    gap: 12px;
+  }
+
+  .site-logo {
+    width: min(320px, 66vw);
+  }
+
+  .save-btn {
+    flex-shrink: 0;
+  }
+}
