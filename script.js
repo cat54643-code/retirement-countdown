@@ -986,7 +986,10 @@ document.addEventListener("DOMContentLoaded", function () {
     projectionRows.innerHTML = "";
     if (targetElement) targetElement.textContent = formatNTD(data.retirementTarget);
 
-    var retirementAge = calculateRetirementAge();
+    // 第 05 區的年齡軌跡要依「使用者設定的退休年齡」切換退休前／退休後。
+    // 「預估退休年齡」只負責告訴使用者依目前資產與投入速度，何時可能達標，
+    // 不應拿來決定使用者設定的退休生活何時開始。
+    var retirementAge = Math.max(data.currentAge, getPlannedRetirementAge());
     var projected = {
       cash: data.balances.cash,
       deposit: data.balances.deposit,
@@ -1055,7 +1058,8 @@ document.addEventListener("DOMContentLoaded", function () {
 
     var ageText = document.createElement("span");
     var laborPensionStartAge = Math.max(getNumber("laborPensionClaimAge"), 60);
-    ageText.textContent = age + " 歲" + (isRetired ? "（退休後）" : "（累積期）");
+    // 年齡欄只顯示年齡，退休前／退休後的狀態放在展開明細中呈現，避免畫面資訊過載。
+    ageText.textContent = age + " 歲";
     if (age >= laborPensionStartAge) {
       ageText.classList.add("labor-age-start");
     }
@@ -1226,7 +1230,8 @@ document.addEventListener("DOMContentLoaded", function () {
       var currentAge = getGoalCurrentAge();
       var value = Math.round(Number(target.value));
       if (!isFinite(value)) value = currentAge;
-      value = Math.max(currentAge, Math.min(value, 85));
+      var maxAge = getLifeExpectancyAge();
+      value = Math.max(currentAge, Math.min(value, maxAge));
       target.value = value;
       updateAllRetirementCalculations();
       return;
