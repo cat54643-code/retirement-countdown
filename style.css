@@ -1393,3 +1393,40 @@ footer {
     flex-shrink: 0;
   }
 }
+
+
+/* v4.7.6：品牌 Header 尺寸最佳化
+   Logo 改放網站根目錄，方便直接上傳 GitHub；桌機／手機同步縮短 Header 高度。 */
+.site-logo {
+  width: min(390px, 64vw);
+}
+
+.header {
+  min-height: 116px;
+  margin-bottom: 18px;
+}
+
+@media (max-width: 650px) {
+  .app {
+    padding-top: 14px;
+  }
+
+  .header {
+    min-height: 82px;
+    gap: 10px;
+    margin-bottom: 16px;
+    align-items: center;
+  }
+
+  .site-logo {
+    width: calc(100% - 86px);
+    max-width: 270px;
+  }
+
+  .save-btn {
+    padding: 11px 13px;
+    font-size: 13px;
+    border-radius: 16px;
+    white-space: nowrap;
+  }
+}
