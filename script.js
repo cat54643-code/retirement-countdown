@@ -637,9 +637,10 @@ document.addEventListener("DOMContentLoaded", function () {
     return getNumber("inflationRate");
   }
   function calculateAnnualNeedAtAge(age) {
-    var currentAge = getGoalCurrentAge();
-    var years = Math.max(age - currentAge, 0);
-    return getBaseAnnualNeed() * Math.pow(1 + getInflationRate() / 100, years);
+    // 與退休現金流引擎完全相同：先算通膨後的總支出，再扣除該年可取得的工作／勞退／勞保收入。
+    var annualExpense = calculateAnnualExpenseAtAge(age);
+    var retirementIncome = getPostRetirementMonthlyIncomeAtAge(age, age) * 12;
+    return Math.max(annualExpense - retirementIncome, 0);
   }
   function calculateAnnualExpenseAtAge(age) {
     var currentAge = getGoalCurrentAge();
@@ -692,24 +693,34 @@ document.addEventListener("DOMContentLoaded", function () {
     ) / total;
   }
 
-  // 退休後的勞退月收入：退休後不再提撥，只讓既有帳戶持續累積到請領年齡。
+  var laborPensionMonthlyCache = {};
+
+  // 勞退月收入：以「請領年齡當下的專戶餘額」換算規劃用月收入。
+  // 完全退休會在設定退休年齡停止提撥；微退休則依設定工作年齡持續提撥。
   function getLaborPensionMonthlyAfterRetirement(age, retirementAge) {
     var claimAge = Math.max(getNumber("laborPensionClaimAge"), 60);
     if (age < claimAge) return 0;
 
-    // 請領金額獨立於「是否已找到預估退休年齡」。
-    // retirementAge 有值時，代表退休後停止提撥；沒有值時則先依設定的工作年齡估算。
     var currentAge = getGoalCurrentAge();
     var workUntilAge = getNumber("laborInsuranceWorkUntilAge");
     if (getActiveGoal() === "full" && retirementAge != null && isFinite(retirementAge)) {
       workUntilAge = Math.min(workUntilAge, retirementAge);
     }
 
-    var balance = getNumber("laborPensionBalance");
     var salary = getNumber("laborPensionSalary");
     var employerRate = Math.min(Math.max(getNumber("laborPensionEmployerRate"), 0), 6);
     var selfRate = Math.min(Math.max(getNumber("laborPensionSelfRate"), 0), 6);
     var annualReturn = getNumber("laborPensionReturn");
+    var cacheKey = [
+      getActiveGoal(), currentAge, claimAge, workUntilAge,
+      getNumber("laborPensionBalance"), salary, employerRate, selfRate, annualReturn,
+      retirementAge == null ? "" : retirementAge
+    ].join("|");
+    if (laborPensionMonthlyCache[cacheKey] != null) {
+      return laborPensionMonthlyCache[cacheKey];
+    }
+
+    var balance = getNumber("laborPensionBalance");
     var monthlyRate = annualReturn / 100 / 12;
     var claimMonths = Math.max(Math.round((claimAge - currentAge) * 12), 0);
     var contributionMonths = Math.max(
@@ -723,7 +734,9 @@ document.addEventListener("DOMContentLoaded", function () {
         balance += salary * (employerRate + selfRate) / 100;
       }
     }
-    return Math.max(balance, 0) * 0.04 / 12;
+    var monthlyPension = Math.max(balance, 0) * 0.04 / 12;
+    laborPensionMonthlyCache[cacheKey] = monthlyPension;
+    return monthlyPension;
   }
 
   function getPostRetirementMonthlyIncomeAtAge(age, retirementAge) {
@@ -734,36 +747,235 @@ document.addEventListener("DOMContentLoaded", function () {
     return salary + laborPension + laborInsurance;
   }
 
-  // 計算「退休當下」需要準備多少本金，才能一路支應到規劃終點。
-  // 只計算退休後現金流，不把退休前累積期混進來。
-  function calculateSpendDownTargetAtAge(age) {
-    var endAge = getLifeExpectancyAge();
-    if (age >= endAge) return 0;
+  /* =====================================================
+     11. 退休現金流引擎
+     =====================================================
+     04、05、勞退／勞保全部從這裡取得退休後現金流。
 
-    var annualReturn = getRetirementAnnualReturnAtAge(age);
-    var monthlyRate = annualReturn / 100 / 12;
-    var baseAnnualExpense = getBaseAnnualExpense();
-    var months = Math.ceil((endAge - age) * 12);
-    var presentValue = 0;
-
-    // 重要：FIRE 收入不能先從生活費扣掉、之後又再扣一次。
-    // 這裡以「退休後實際支出」為基準，再扣除工作收入與退休保障。
-    for (var month = 0; month < months; month++) {
-      var years = month / 12;
-      var annualExpenseAtMonth = baseAnnualExpense * Math.pow(1 + getInflationRate() / 100, years);
-      var monthlyExpense = annualExpenseAtMonth / 12;
-      var monthlyIncome = getPostRetirementMonthlyIncomeAtAge(age + month / 12, age);
-      var withdrawal = Math.max(monthlyExpense - monthlyIncome, 0);
-      var discount = Math.pow(1 + monthlyRate, month + 1);
-      presentValue += discount > 0 ? withdrawal / discount : withdrawal;
-    }
-    return Math.max(presentValue, 0);
+     資產池規則：
+     - 退休前：現金／定存／投資各自以自己的年報酬率累積。
+     - 退休後：三個資產池仍然分開成長，不再合併成單一報酬率。
+     - 每月需要由資產補足的缺口，依「當月三池餘額比例」共同提領。
+       這樣不需要額外增加「先花哪一池」的使用者設定，同時保留三池各自報酬率。
+     - self 模式只在退休後把「超過最低需求的資產」額外攤提到規劃終點。
+  ===================================================== */
+  function getRetirementCashFlowInputs(retirementAge) {
+    return {
+      balances: getProjectedAssetBreakdownAtAge(retirementAge),
+      monthsToEnd: Math.max(Math.ceil((getLifeExpectancyAge() - retirementAge) * 12), 0),
+      baseAnnualExpense: getBaseAnnualExpense(),
+      inflationRate: getInflationRate()
+    };
   }
 
+  function getRetirementPoolRates() {
+    return {
+      cash: getNumber("cashAnnualReturn") / 100 / 12,
+      deposit: getNumber("depositAnnualReturn") / 100 / 12,
+      investment: getNumber("investmentAnnualReturn") / 100 / 12
+    };
+  }
+
+  function normalizeRetirementBalances(retirementAge, retirementAssets) {
+    if (retirementAssets && typeof retirementAssets === "object") {
+      return {
+        cash: Math.max(Number(retirementAssets.cash) || 0, 0),
+        deposit: Math.max(Number(retirementAssets.deposit) || 0, 0),
+        investment: Math.max(Number(retirementAssets.investment) || 0, 0)
+      };
+    }
+
+    var total = Math.max(Number(retirementAssets) || 0, 0);
+    var base = getProjectedAssetBreakdownAtAge(retirementAge);
+    var baseTotal = base.cash + base.deposit + base.investment;
+    if (baseTotal <= 0 || total <= 0) {
+      return { cash: 0, deposit: 0, investment: 0 };
+    }
+    return {
+      cash: total * base.cash / baseTotal,
+      deposit: total * base.deposit / baseTotal,
+      investment: total * base.investment / baseTotal
+    };
+  }
+
+  function withdrawFromRetirementPools(pools, amount) {
+    var total = pools.cash + pools.deposit + pools.investment;
+    if (amount <= 0 || total <= 0) return Math.max(amount, 0);
+
+    var actual = Math.min(amount, total);
+    var cashShare = pools.cash / total;
+    var depositShare = pools.deposit / total;
+    var investmentShare = pools.investment / total;
+
+    pools.cash = Math.max(pools.cash - actual * cashShare, 0);
+    pools.deposit = Math.max(pools.deposit - actual * depositShare, 0);
+    pools.investment = Math.max(pools.investment - actual * investmentShare, 0);
+    return amount - actual;
+  }
+
+  function calculateSpendDownExtraMonthlyWithdrawal(retirementAge, retirementAssets, monthsToEnd) {
+    var baseTarget = calculateCashFlowTargetAtAge(retirementAge);
+    var pools = normalizeRetirementBalances(retirementAge, retirementAssets);
+    var initialTotal = pools.cash + pools.deposit + pools.investment;
+    var surplus = Math.max(initialTotal - baseTarget, 0);
+    if (surplus <= 0 || monthsToEnd <= 0) return 0;
+
+    var low = 0;
+    var high = Math.max(surplus / monthsToEnd, 1000);
+    while (!simulateRetirementCashFlow(
+      retirementAge,
+      pools,
+      getLifeExpectancyAge(),
+      { spendDown: false, extraMonthlyWithdrawal: high }
+    ).depleted && high < 100000000) {
+      high *= 2;
+    }
+
+    for (var i = 0; i < 32; i++) {
+      var mid = (low + high) / 2;
+      var result = simulateRetirementCashFlow(
+        retirementAge,
+        pools,
+        getLifeExpectancyAge(),
+        { spendDown: false, extraMonthlyWithdrawal: mid }
+      );
+      if (result.depleted) high = mid;
+      else low = mid;
+    }
+    return low;
+  }
+
+  function simulateRetirementCashFlow(retirementAge, retirementAssets, endAge, options) {
+    options = options || {};
+    var pools = normalizeRetirementBalances(retirementAge, retirementAssets);
+    var planningEndAge = getLifeExpectancyAge();
+    var monthsToEnd = Math.max(Math.ceil((planningEndAge - retirementAge) * 12), 0);
+    var monthsToDisplay = Math.max(
+      Math.min(Math.ceil((endAge - retirementAge) * 12), monthsToEnd),
+      0
+    );
+    var baseAnnualExpense = getBaseAnnualExpense();
+    var inflationRate = getInflationRate();
+    var rates = getRetirementPoolRates();
+    var snapshots = [];
+    var depleted = false;
+    var extraMonthlyWithdrawal = 0;
+
+    if (isSpendDownPlan() && options.spendDown !== false && monthsToEnd > 0) {
+      if (isFinite(Number(options.extraMonthlyWithdrawal))) {
+        extraMonthlyWithdrawal = Math.max(Number(options.extraMonthlyWithdrawal), 0);
+      } else {
+        extraMonthlyWithdrawal = calculateSpendDownExtraMonthlyWithdrawal(
+          retirementAge,
+          pools,
+          monthsToEnd
+        );
+      }
+    } else if (isFinite(Number(options.extraMonthlyWithdrawal))) {
+      extraMonthlyWithdrawal = Math.max(Number(options.extraMonthlyWithdrawal), 0);
+    }
+
+    for (var month = 0; month < monthsToDisplay; month++) {
+      pools.cash *= 1 + rates.cash;
+      pools.deposit *= 1 + rates.deposit;
+      pools.investment *= 1 + rates.investment;
+
+      var years = month / 12;
+      var annualExpense = baseAnnualExpense * Math.pow(1 + inflationRate / 100, years);
+      var monthlyExpense = annualExpense / 12;
+      var monthlyIncome = getPostRetirementMonthlyIncomeAtAge(
+        retirementAge + month / 12,
+        retirementAge
+      );
+      var baseWithdrawal = Math.max(monthlyExpense - monthlyIncome, 0);
+      var withdrawal = baseWithdrawal + extraMonthlyWithdrawal;
+      var shortfall = withdrawFromRetirementPools(pools, withdrawal);
+      if (shortfall > 0.01) {
+        depleted = true;
+        pools.cash = 0;
+        pools.deposit = 0;
+        pools.investment = 0;
+      }
+
+      if ((month + 1) % 12 === 0 || month === monthsToDisplay - 1) {
+        snapshots.push({
+          age: retirementAge + (month + 1) / 12,
+          assets: pools.cash + pools.deposit + pools.investment,
+          cash: pools.cash,
+          deposit: pools.deposit,
+          investment: pools.investment,
+          withdrawal: withdrawal,
+          income: monthlyIncome,
+          annualNeed: annualExpense
+        });
+      }
+
+      if (depleted) break;
+    }
+
+    return {
+      assets: pools.cash + pools.deposit + pools.investment,
+      cash: pools.cash,
+      deposit: pools.deposit,
+      investment: pools.investment,
+      snapshots: snapshots,
+      annualReturn: getRetirementAnnualReturnAtAge(retirementAge),
+      depleted: depleted
+    };
+  }
+
+  // 以同一套月度現金流逐步找出「退休當下最低需要的資產」。
+  // 這取代原本單純 annualNeed / 4% 的算法，因此退休後可領的勞退／勞保會直接降低需求。
+  function calculateCashFlowTargetAtAge(retirementAge) {
+    var inputs = getRetirementCashFlowInputs(retirementAge);
+    if (inputs.monthsToEnd <= 0) return 0;
+
+    var base = inputs.balances;
+    var baseTotal = base.cash + base.deposit + base.investment;
+    if (baseTotal <= 0) {
+      base = { cash: 0, deposit: 0, investment: 1 };
+      baseTotal = 1;
+    }
+
+    // 若退休後保障收入已足以支應全部生活費，資產端最低需求為0。
+    var zeroCheck = simulateRetirementCashFlow(retirementAge, 0, getLifeExpectancyAge(), { spendDown: false });
+    if (!zeroCheck.depleted) return 0;
+
+    function buildPools(total) {
+      return {
+        cash: total * base.cash / baseTotal,
+        deposit: total * base.deposit / baseTotal,
+        investment: total * base.investment / baseTotal
+      };
+    }
+
+    var low = 0;
+    var high = Math.max(inputs.baseAnnualExpense * 5, 1000000);
+    while (simulateRetirementCashFlow(
+      retirementAge,
+      buildPools(high),
+      getLifeExpectancyAge(),
+      { spendDown: false }
+    ).depleted && high < 1000000000000) {
+      high *= 2;
+    }
+
+    for (var i = 0; i < 32; i++) {
+      var mid = (low + high) / 2;
+      var result = simulateRetirementCashFlow(
+        retirementAge,
+        buildPools(mid),
+        getLifeExpectancyAge(),
+        { spendDown: false }
+      );
+      if (result.depleted) low = mid;
+      else high = mid;
+    }
+    return Math.max(high, 0);
+  }
 
   function calculateRetirementTargetAtAge(age) {
-    if (isSpendDownPlan()) return calculateSpendDownTargetAtAge(age);
-    return calculateAnnualNeedAtAge(age) / 0.04;
+    return calculateCashFlowTargetAtAge(age);
   }
 
   function getAssetBalances() {
@@ -815,11 +1027,16 @@ document.addEventListener("DOMContentLoaded", function () {
     var ageElement = document.getElementById("retirementAgeResult");
     if (annualNeedElement) annualNeedElement.textContent = formatNTD(data.annualNeed);
     if (targetElement) targetElement.textContent = formatNTD(data.retirementTarget);
-    var remaining = Math.max(data.retirementTarget - data.currentAssets, 0);
+
+    // 「目前還差」改為比較退休當下的預估資產與退休當下的需求，避免把今天的資產直接
+    // 與多年後、已經含通膨與退休保障的目標混在一起。
+    var retirementBreakdown = getAccumulatedAssetBreakdownAtAge(data.plannedRetirementAge);
+    var projectedAtRetirement = retirementBreakdown.cash + retirementBreakdown.deposit + retirementBreakdown.investment;
+    var remaining = Math.max(data.retirementTarget - projectedAtRetirement, 0);
     if (remainingElement) {
-      remainingElement.textContent = data.currentAssets >= data.retirementTarget ? "已達成 🎉" : formatNTD(remaining);
+      remainingElement.textContent = projectedAtRetirement >= data.retirementTarget ? "已達成 🎉" : formatNTD(remaining);
     }
-    var progress = data.retirementTarget > 0 ? data.currentAssets / data.retirementTarget * 100 : 0;
+    var progress = data.retirementTarget > 0 ? projectedAtRetirement / data.retirementTarget * 100 : 0;
     progress = Math.max(0, Math.min(progress, 100));
     if (progressPercentElement) progressPercentElement.textContent = progress.toFixed(1) + "%";
     if (progressBar) progressBar.style.width = progress + "%";
@@ -865,8 +1082,8 @@ document.addEventListener("DOMContentLoaded", function () {
     return estimatedAge;
   }
   /* =====================================================
-     11. 退休現金流引擎 / 年齡資產軌跡
-     ===================================================== */
+     11. 年齡資產軌跡
+  ===================================================== */
   function getLifeExpectancyAge() {
     var input = document.getElementById("lifeExpectancy");
     var currentAge = getGoalCurrentAge();
@@ -892,7 +1109,7 @@ document.addEventListener("DOMContentLoaded", function () {
     return value;
   }
 
-  function getLaborPensionBalanceAtAge(age) {
+  function getLaborPensionBalanceAtAge(age, retirementAge) {
     var currentAge = getGoalCurrentAge();
     var claimAge = Math.max(getNumber("laborPensionClaimAge"), 60);
     var balance = getNumber("laborPensionBalance");
@@ -901,6 +1118,9 @@ document.addEventListener("DOMContentLoaded", function () {
     var selfRate = Math.min(Math.max(getNumber("laborPensionSelfRate"), 0), 6);
     var annualReturn = getNumber("laborPensionReturn");
     var workUntilAge = getNumber("laborInsuranceWorkUntilAge");
+    if (getActiveGoal() === "full" && retirementAge != null && isFinite(retirementAge)) {
+      workUntilAge = Math.min(workUntilAge, retirementAge);
+    }
     var targetAge = Math.max(age, currentAge);
     var months = Math.max(Math.round((targetAge - currentAge) * 12), 0);
     var contributionMonths = Math.max(Math.min(Math.round((workUntilAge - currentAge) * 12), months), 0);
@@ -942,20 +1162,14 @@ document.addEventListener("DOMContentLoaded", function () {
   function getMonthlyAvailableAtAge(age, projectedAssets, retirementAge) {
     var goal = getActiveGoal();
     var salary = goal === "micro" ? getNumber("microIncome") : 0;
-
-    // 退休金是「年齡條件」而非「預估退休年齡」條件。
-    // 因此即使目前尚未找到可退休的年齡，60歲後符合請領條件的退休金仍會顯示。
     var laborPensionMonthly = getLaborPensionMonthlyAfterRetirement(age, retirementAge);
     var laborInsuranceMonthly = getLaborInsuranceMonthlyAtAge(age, retirementAge);
     var protection = laborPensionMonthly + laborInsuranceMonthly;
     var fourPercent = projectedAssets * 0.04 / 12;
     var isRetirementPhase = retirementAge != null && age >= retirementAge;
-
-    // 只有真正進入退休階段，才從資產補足生活費缺口。
     var planningWithdrawal = isRetirementPhase
       ? Math.max(calculateAnnualExpenseAtAge(age) / 12 - salary - protection, 0)
       : 0;
-
     var total = salary + planningWithdrawal + protection;
     return {
       salary: salary,
@@ -968,20 +1182,22 @@ document.addEventListener("DOMContentLoaded", function () {
     };
   }
 
-  // 從目前資產一路累積到指定年齡。這裡只負責「退休前」，不做退休後提領。
   function getAccumulatedAssetBreakdownAtAge(targetAge) {
-    var data = getRetirementData();
+    var currentAge = getGoalCurrentAge();
     var projected = {
-      cash: data.balances.cash,
-      deposit: data.balances.deposit,
-      investment: data.balances.investment
+      cash: calculateCashTWD(),
+      deposit: calculateDepositTWD(),
+      investment: calculateInvestmentTWD()
     };
-    var months = Math.max(Math.round((targetAge - data.currentAge) * 12), 0);
+    var months = Math.max(Math.round((targetAge - currentAge) * 12), 0);
+    var cashRate = getNumber("cashAnnualReturn") / 100 / 12;
+    var depositRate = getNumber("depositAnnualReturn") / 100 / 12;
+    var investmentRate = getNumber("investmentAnnualReturn") / 100 / 12;
+    var monthlyInvestment = getNumber("monthlyInvestment");
     for (var month = 0; month < months; month++) {
-      projected.cash *= 1 + data.cashAnnualReturn / 100 / 12;
-      projected.deposit *= 1 + data.depositAnnualReturn / 100 / 12;
-      projected.investment *= 1 + data.investmentAnnualReturn / 100 / 12;
-      projected.investment += data.monthlyInvestment;
+      projected.cash *= 1 + cashRate;
+      projected.deposit *= 1 + depositRate;
+      projected.investment = projected.investment * (1 + investmentRate) + monthlyInvestment;
     }
     return projected;
   }
@@ -992,62 +1208,13 @@ document.addEventListener("DOMContentLoaded", function () {
     return (1 - Math.pow(1 + monthlyRate, -months)) / monthlyRate;
   }
 
-  function simulateRetirementCashFlow(retirementAge, retirementAssets, endAge) {
-    var assets = Math.max(retirementAssets || 0, 0);
-    var annualReturn = getRetirementAnnualReturnAtAge(retirementAge);
-    var monthlyRate = annualReturn / 100 / 12;
-    var planningEndAge = getLifeExpectancyAge();
-    var monthsToEnd = Math.max(Math.ceil((planningEndAge - retirementAge) * 12), 0);
-    var monthsToDisplay = Math.max(Math.min(Math.ceil((endAge - retirementAge) * 12), monthsToEnd), 0);
-    var baseAnnualExpense = getBaseAnnualExpense();
-    var inflationRate = getInflationRate();
-    var snapshots = [];
-
-    // self 模式：先算「基本生活需求」的現值，再把退休時多出的資產
-    // 用固定的額外月提領攤到規劃終點。不能每次只模擬到當前顯示年齡，
-    // 否則 39 歲的 12 個月會被誤當成「12 個月內花完全部退休資產」。
-    var extraMonthlyWithdrawal = 0;
-    if (isSpendDownPlan() && monthsToEnd > 0) {
-      var baseTarget = calculateSpendDownTargetAtAge(retirementAge);
-      var surplus = Math.max(assets - baseTarget, 0);
-      var annuityFactor = getAnnuityFactor(monthlyRate, monthsToEnd);
-      extraMonthlyWithdrawal = annuityFactor > 0 ? surplus / annuityFactor : 0;
-    }
-
-    for (var month = 0; month < monthsToDisplay; month++) {
-      assets *= 1 + monthlyRate;
-
-      var years = month / 12;
-      var annualExpense = baseAnnualExpense * Math.pow(1 + inflationRate / 100, years);
-      var monthlyExpense = annualExpense / 12;
-      var monthlyIncome = getPostRetirementMonthlyIncomeAtAge(retirementAge + month / 12, retirementAge);
-      var baseWithdrawal = Math.max(monthlyExpense - monthlyIncome, 0);
-      var withdrawal = isSpendDownPlan()
-        ? baseWithdrawal + extraMonthlyWithdrawal
-        : baseWithdrawal;
-
-      if (withdrawal > assets) withdrawal = assets;
-      assets -= withdrawal;
-      if (assets < 0) assets = 0;
-
-      if ((month + 1) % 12 === 0 || month === monthsToDisplay - 1) {
-        snapshots.push({
-          age: retirementAge + (month + 1) / 12,
-          assets: assets,
-          withdrawal: withdrawal,
-          income: monthlyIncome,
-          annualNeed: annualExpense
-        });
-      }
-    }
-    return { assets: assets, snapshots: snapshots, annualReturn: annualReturn };
-  }
-
-
   function calculateAssetsRemainingAtLifeExpectancy(retirementAge, retirementAssets) {
     var endAge = getLifeExpectancyAge();
-    if (!retirementAge) return 0;
-    if (retirementAge >= endAge) return Math.max(retirementAssets || 0, 0);
+    if (!isFinite(retirementAge)) return 0;
+    if (retirementAge >= endAge) {
+      var pools = normalizeRetirementBalances(retirementAge, retirementAssets);
+      return pools.cash + pools.deposit + pools.investment;
+    }
     return simulateRetirementCashFlow(retirementAge, retirementAssets, endAge).assets;
   }
 
@@ -1059,8 +1226,10 @@ document.addEventListener("DOMContentLoaded", function () {
       return;
     }
     var projected = getAccumulatedAssetBreakdownAtAge(retirementAge);
-    var retirementAssets = projected.cash + projected.deposit + projected.investment;
-    var remaining = calculateAssetsRemainingAtLifeExpectancy(retirementAge, retirementAssets);
+    var remaining = calculateAssetsRemainingAtLifeExpectancy(
+      retirementAge,
+      projected
+    );
     element.textContent = formatNTD(remaining);
   }
 
@@ -1074,27 +1243,36 @@ document.addEventListener("DOMContentLoaded", function () {
     projectionRows.innerHTML = "";
     if (targetElement) targetElement.textContent = formatNTD(data.retirementTarget);
 
-    // 第 05 區的年齡軌跡要依「使用者設定的退休年齡」切換退休前／退休後。
-    // 「預估退休年齡」只負責告訴使用者依目前資產與投入速度，何時可能達標，
-    // 不應拿來決定使用者設定的退休生活何時開始。
     var retirementAge = Math.max(data.currentAge, getPlannedRetirementAge());
+    var currentAge = data.currentAge;
     var projected = {
       cash: data.balances.cash,
       deposit: data.balances.deposit,
       investment: data.balances.investment
     };
-    var currentAge = data.currentAge;
-
     var currentTarget = calculateRetirementTargetAtAge(currentAge);
     var currentAvailable = getMonthlyAvailableAtAge(currentAge, data.currentAssets, retirementAge);
     appendProjectionRow(currentAge, data.currentAssets, currentTarget, currentAvailable, false);
 
+    // 退休前先完整累積到退休當下，之後把三個資產池交給同一個退休現金流引擎。
     var assetsAtRetirement = null;
+    var retirementSimulation = null;
     var lastAssets = data.currentAssets;
 
+    if (retirementAge <= endAge) {
+      var retirementBreakdown = getAccumulatedAssetBreakdownAtAge(retirementAge);
+      assetsAtRetirement = retirementBreakdown;
+      retirementSimulation = simulateRetirementCashFlow(
+        retirementAge,
+        retirementBreakdown,
+        endAge
+      );
+    }
+
     for (var age = currentAge + 1; age <= endAge; age++) {
-      var isRetired = retirementAge !== null && age >= Math.ceil(retirementAge);
+      var isRetired = age >= Math.ceil(retirementAge);
       var projectedAssets;
+      var snapshot = null;
 
       if (!isRetired) {
         for (var month = 0; month < 12; month++) {
@@ -1105,12 +1283,24 @@ document.addEventListener("DOMContentLoaded", function () {
         }
         projectedAssets = projected.cash + projected.deposit + projected.investment;
       } else {
-        if (assetsAtRetirement === null) {
-          var retirementBreakdown = getAccumulatedAssetBreakdownAtAge(retirementAge);
-          assetsAtRetirement = retirementBreakdown.cash + retirementBreakdown.deposit + retirementBreakdown.investment;
+        // 從同一個退休模擬結果取該年快照；三池已在引擎內各自成長與提領。
+        if (retirementSimulation) {
+          for (var i = 0; i < retirementSimulation.snapshots.length; i++) {
+            var candidate = retirementSimulation.snapshots[i];
+            if (Math.abs(candidate.age - age) < 0.0001) {
+              snapshot = candidate;
+              break;
+            }
+          }
+          if (snapshot) {
+            projectedAssets = snapshot.assets;
+          } else {
+            var lastSnapshot = retirementSimulation.snapshots[retirementSimulation.snapshots.length - 1];
+            projectedAssets = lastSnapshot ? lastSnapshot.assets : 0;
+          }
+        } else {
+          projectedAssets = 0;
         }
-        var retirementSimulation = simulateRetirementCashFlow(retirementAge, assetsAtRetirement, age);
-        projectedAssets = retirementSimulation.assets;
       }
 
       lastAssets = projectedAssets;
@@ -1129,11 +1319,9 @@ document.addEventListener("DOMContentLoaded", function () {
     var noteElement = document.getElementById("calculationNoteText");
     if (noteElement) {
       var lifeAge = getLifeExpectancyAge();
-      if (isSpendDownPlan()) {
-        noteElement.textContent = "本模式會先模擬退休前累積，達到設定的退休年齡後停止新增投資；退休後先支應生活費，再把超過最低需求的資產逐步用到規劃終點，並納入通膨、投資報酬率與勞退／勞保等收入，規劃至 " + lifeAge + " 歲。";
-      } else {
-        noteElement.textContent = "本模式退休前持續累積；退休後停止新增投資，再依目前報酬率、通膨與退休後收入逐月模擬資產，因此 " + lifeAge + " 歲剩餘資產不保證一定大於0。";
-      }
+      noteElement.textContent = isSpendDownPlan()
+        ? "04、05 與勞退／勞保共用同一套月度現金流；退休後現金、定存、投資仍分開計算各自報酬率，再依當期比例支應生活費。此模式會把超過最低需求的資產逐步用到 " + lifeAge + " 歲。"
+        : "04、05 與勞退／勞保共用同一套月度現金流；退休後現金、定存、投資仍分開計算各自報酬率，再依當期比例支應生活費，並規劃至 " + lifeAge + " 歲。";
     }
   }
 
@@ -1183,7 +1371,7 @@ document.addEventListener("DOMContentLoaded", function () {
       if (isSpendDownPlan()) {
         lines.push({ text: formatNTD(available.planningWithdrawal) + "（資產規劃提領）" });
       } else {
-        lines.push({ text: formatNTD(available.fourPercent) + "（4%規劃提領）" });
+        lines.push({ text: formatNTD(available.planningWithdrawal) + "（資產補足生活缺口）" });
       }
     } else {
       lines.push({ text: "退休前持續累積資產" });
@@ -1215,56 +1403,30 @@ document.addEventListener("DOMContentLoaded", function () {
   ===================================================== */
   function calculateLaborPension() {
     var currentAge = getGoalCurrentAge();
+    var plannedRetirementAge = getPlannedRetirementAge();
     var claimAge = Math.max(getNumber("laborPensionClaimAge"), 60);
-    var balance = getNumber("laborPensionBalance");
-    var salary = getNumber("laborPensionSalary");
-    var employerRate = Math.min(Math.max(getNumber("laborPensionEmployerRate"), 0), 6);
-    var selfRate = Math.min(Math.max(getNumber("laborPensionSelfRate"), 0), 6);
-    var annualReturn = getNumber("laborPensionReturn");
-    var workUntilAge = getNumber("laborInsuranceWorkUntilAge");
-    var months = Math.max(Math.round((claimAge - currentAge) * 12), 0);
-    var contributionMonths = Math.max(Math.min(Math.round((workUntilAge - currentAge) * 12), months), 0);
-    var monthlyRate = annualReturn / 100 / 12;
-    for (var month = 1; month <= months; month++) {
-      balance *= 1 + monthlyRate;
-      if (month <= contributionMonths) {
-        balance += salary * (employerRate + selfRate) / 100;
-      }
-    }
+    var pensionBalanceData = getLaborPensionBalanceAtAge(claimAge, plannedRetirementAge);
+    var balance = Math.max(pensionBalanceData.balance, 0);
+
     var pensionElement = document.getElementById("laborPensionProjected");
     if (pensionElement) pensionElement.textContent = formatNTD(balance);
 
-    var insuranceYears = getNumber("laborInsuranceYears");
-    var insuranceSalary = getNumber("laborInsuranceSalary");
-    var insuranceWorkUntilAge = getNumber("laborInsuranceWorkUntilAge");
-    var insuranceClaimAge = Math.max(getNumber("laborInsuranceClaimAge"), 60);
-    var insuranceCurrentAge = currentAge;
-    var futureYears = Math.max(insuranceWorkUntilAge - insuranceCurrentAge, 0);
-    var totalInsuranceYears = Math.min(60, insuranceYears + futureYears);
-    var monthlyA = totalInsuranceYears * insuranceSalary * 0.00775 + 3000;
-    var monthlyB = totalInsuranceYears * insuranceSalary * 0.0155;
-    var monthlyBenefit = Math.max(monthlyA, monthlyB);
-    var adjustmentYears = insuranceClaimAge - 65;
-    if (adjustmentYears < 0) monthlyBenefit *= 1 - Math.min(Math.abs(adjustmentYears), 5) * 0.04;
-    if (adjustmentYears > 0) monthlyBenefit *= 1 + Math.min(adjustmentYears, 5) * 0.04;
-    if (insuranceClaimAge === 65) {
-      /* no adjustment */
-    }
+    var insuranceMonthly = getLaborInsuranceMonthlyAtAge(
+      Math.max(getNumber("laborInsuranceClaimAge"), 60),
+      plannedRetirementAge
+    );
     var insuranceElement = document.getElementById("laborInsuranceMonthly");
-    if (insuranceElement) insuranceElement.textContent = formatNTD(monthlyBenefit);
+    if (insuranceElement) insuranceElement.textContent = formatNTD(insuranceMonthly);
 
     var protectionElement = document.getElementById("retirementProtectionMonthly");
-    var protectionMonthly = balance * 0.04 / 12 + monthlyBenefit;
+    var protectionMonthly = balance * 0.04 / 12 + insuranceMonthly;
     if (protectionElement) protectionElement.textContent = formatNTD(protectionMonthly);
   }
   function updateCalculationNote() {
     var element = document.getElementById("calculationNoteText");
     if (!element) return;
-    if (isSpendDownPlan()) {
-      element.textContent = "以85歲為規劃終點，模擬退休後生活費、通膨、投資報酬與退休保障，估算退休時所需資產。";
-    } else {
-      element.textContent = "以4%提領率估算退休資產需求，並依設定的退休年齡與通膨率，把生活費換算成退休當年的金額。";
-    }
+    var lifeAge = getLifeExpectancyAge();
+    element.textContent = "04、05 與勞退／勞保共用同一套月度現金流；退休後現金、定存、投資仍分開計算各自報酬率，並規劃至 " + lifeAge + " 歲。";
   }
 
   function updateAllRetirementCalculations() {

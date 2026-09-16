@@ -338,20 +338,20 @@
         <button class="life-card active" data-inheritance="leave">
           <div class="life-icon">🏠</div>
           <strong>希望留下資產</strong>
-          <span>以4%方式規劃</span>
+          <span>以最低需求為基準，保留多餘資產</span>
         </button>
 
         <button class="life-card" data-inheritance="self">
           <div class="life-icon">🫰</div>
           <strong>主要用在自己身上</strong>
           <span>把錢用在自己的人生</span>
-          <small>以85歲為規劃終點</small>
+          <small>以規劃終點為基準</small>
         </button>
 
         <button class="life-card" data-inheritance="undecided">
           <div class="life-icon">🤔</div>
           <strong>尚未決定</strong>
-          <span>暫以4%方式規劃</span>
+          <span>暫以最低需求估算</span>
         </button>
       </div>
     </div>
@@ -441,17 +441,17 @@
     <div class="result-grid">
 
       <div class="result-card">
-        <span>退休後每年需要</span>
+        <span>退休後每年資產缺口</span>
         <strong id="annualNeed">NT$ 0</strong>
       </div>
 
       <div class="result-card highlight">
-        <span>預估退休所需資產</span>
+        <span>退休時最低所需資產</span>
         <strong id="retirementTarget">NT$ 0</strong>
       </div>
 
       <div class="result-card">
-        <span>目前還差</span>
+        <span>退休時預估還差</span>
         <strong id="remainingTarget">NT$ 0</strong>
       </div>
 
@@ -461,7 +461,7 @@
       </div>
 
       <div class="result-card">
-        <span>85歲預估剩餘資產</span>
+        <span>規劃終點預估剩餘資產</span>
         <strong id="age85Remaining">NT$ 0</strong>
       </div>
 
@@ -558,8 +558,7 @@
       <strong>📌 試算方式</strong>
 
       <p>
-        <span id="calculationNoteText">以4%提領率估算退休資產需求，並依設定的退休年齡與通膨率，把生活費換算成退休當年的金額。</span>
-        這一區只負責計算「需要多少錢」，不會因第 05 區的投資報酬率或每月投入金額而改變。
+        <span id="calculationNoteText">04、05 與勞退／勞保共用同一套月度現金流，會依退休年齡、通膨、三種資產報酬率與退休保障收入估算退休時最低所需資產。</span>
       </p>
 
     </div>
