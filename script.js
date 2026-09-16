@@ -26,6 +26,36 @@ document.addEventListener("DOMContentLoaded", function () {
   }
 
   var trackedFields = {};
+  // 重計算採手動觸發：輸入時只標記資料變更，不啟動昂貴的退休現金流試算。
+  var calculationDirty = true;
+  var cashFlowTargetCache = {};
+  var calculationRunId = 0;
+
+  function markCalculationDirty() {
+    calculationDirty = true;
+    var button = document.getElementById("calculateBtn");
+    var status = document.getElementById("calculationStatus");
+    var wrap = document.querySelector(".calculate-float-wrap");
+    if (button) button.classList.add("is-dirty");
+    if (wrap) wrap.classList.add("is-dirty");
+    if (status) status.textContent = "資料已變更，點擊「試算」更新結果";
+  }
+
+  function clearCalculationCache() {
+    cashFlowTargetCache = {};
+    laborPensionMonthlyCache = {};
+    calculationRunId += 1;
+  }
+
+  function finishCalculation() {
+    calculationDirty = false;
+    var button = document.getElementById("calculateBtn");
+    var status = document.getElementById("calculationStatus");
+    var wrap = document.querySelector(".calculate-float-wrap");
+    if (button) button.classList.remove("is-dirty");
+    if (wrap) wrap.classList.remove("is-dirty");
+    if (status) status.textContent = "已更新試算結果";
+  }
   function trackFieldInteraction(target) {
     if (!target || !target.id || trackedFields[target.id]) return;
     trackedFields[target.id] = true;
@@ -122,7 +152,7 @@ document.addEventListener("DOMContentLoaded", function () {
         if (fullSetting) fullSetting.classList.add("hidden");
         if (microSetting) microSetting.classList.remove("hidden");
       }
-      updateAllRetirementCalculations();
+      markCalculationDirty();
     });
   });
   /* =====================================================
@@ -145,7 +175,7 @@ document.addEventListener("DOMContentLoaded", function () {
         if (plan === "self") selectedInheritance.textContent = "🫰 主要用在自己身上";
         if (plan === "undecided") selectedInheritance.textContent = "🤔 尚未決定";
       }
-      updateAllRetirementCalculations();
+      markCalculationDirty();
     });
   });
 
@@ -161,7 +191,7 @@ document.addEventListener("DOMContentLoaded", function () {
         if (life === "luxury") selectedLifestyle.textContent = "✨ 肆意享受";
       }
       if (travelBudgetElement) travelBudgetElement.textContent = formatNTD(getTravelBudget());
-      updateAllRetirementCalculations();
+      markCalculationDirty();
     });
   });
   /* =====================================================
@@ -247,7 +277,8 @@ document.addEventListener("DOMContentLoaded", function () {
     });
     box.querySelector(".delete-asset").addEventListener("click", function () {
       box.remove();
-      updateAllRetirementCalculations();
+      updateAssetTotals();
+      markCalculationDirty();
     });
     updateSummary();
     return box;
@@ -258,7 +289,8 @@ document.addEventListener("DOMContentLoaded", function () {
     addCashBtn.addEventListener("click", function () {
       trackEvent("add_asset", { asset_type: "cash" });
       createCashItem();
-      updateAllRetirementCalculations();
+      updateAssetTotals();
+      markCalculationDirty();
     });
   }
   /* =====================================================
@@ -382,7 +414,8 @@ document.addEventListener("DOMContentLoaded", function () {
     });
     box.querySelector(".delete-asset").addEventListener("click", function () {
       box.remove();
-      updateAllRetirementCalculations();
+      updateAssetTotals();
+      markCalculationDirty();
     });
     calculateInvestment();
     return box;
@@ -392,7 +425,8 @@ document.addEventListener("DOMContentLoaded", function () {
     addInvestmentBtn.addEventListener("click", function () {
       trackEvent("add_asset", { asset_type: "investment" });
       createInvestmentItem();
-      updateAllRetirementCalculations();
+      updateAssetTotals();
+      markCalculationDirty();
     });
   }
   /* =====================================================
@@ -493,7 +527,8 @@ document.addEventListener("DOMContentLoaded", function () {
     });
     box.querySelector(".delete-asset").addEventListener("click", function () {
       box.remove();
-      updateAllRetirementCalculations();
+      updateAssetTotals();
+      markCalculationDirty();
     });
     calculateDeposit();
     return box;
@@ -503,7 +538,8 @@ document.addEventListener("DOMContentLoaded", function () {
     addDepositBtn.addEventListener("click", function () {
       trackEvent("add_asset", { asset_type: "deposit" });
       createDepositItem();
-      updateAllRetirementCalculations();
+      updateAssetTotals();
+      markCalculationDirty();
     });
   }
   /* =====================================================
@@ -861,6 +897,20 @@ document.addEventListener("DOMContentLoaded", function () {
     var depleted = false;
     var extraMonthlyWithdrawal = 0;
 
+    // 退休當下就是一個有效節點，讓 65 歲退休時的 65 歲資料不會誤抓到 66～85 歲。
+    if (monthsToDisplay > 0 || retirementAge <= planningEndAge) {
+      snapshots.push({
+        age: retirementAge,
+        assets: pools.cash + pools.deposit + pools.investment,
+        cash: pools.cash,
+        deposit: pools.deposit,
+        investment: pools.investment,
+        withdrawal: 0,
+        income: getPostRetirementMonthlyIncomeAtAge(retirementAge, retirementAge),
+        annualNeed: baseAnnualExpense
+      });
+    }
+
     if (isSpendDownPlan() && options.spendDown !== false && monthsToEnd > 0) {
       if (isFinite(Number(options.extraMonthlyWithdrawal))) {
         extraMonthlyWithdrawal = Math.max(Number(options.extraMonthlyWithdrawal), 0);
@@ -927,8 +977,15 @@ document.addEventListener("DOMContentLoaded", function () {
   // 以同一套月度現金流逐步找出「退休當下最低需要的資產」。
   // 這取代原本單純 annualNeed / 4% 的算法，因此退休後可領的勞退／勞保會直接降低需求。
   function calculateCashFlowTargetAtAge(retirementAge) {
+    var cacheKey = String(Math.round(retirementAge * 100) / 100);
+    if (Object.prototype.hasOwnProperty.call(cashFlowTargetCache, cacheKey)) {
+      return cashFlowTargetCache[cacheKey];
+    }
     var inputs = getRetirementCashFlowInputs(retirementAge);
-    if (inputs.monthsToEnd <= 0) return 0;
+    if (inputs.monthsToEnd <= 0) {
+      cashFlowTargetCache[cacheKey] = 0;
+      return 0;
+    }
 
     var base = inputs.balances;
     var baseTotal = base.cash + base.deposit + base.investment;
@@ -939,7 +996,10 @@ document.addEventListener("DOMContentLoaded", function () {
 
     // 若退休後保障收入已足以支應全部生活費，資產端最低需求為0。
     var zeroCheck = simulateRetirementCashFlow(retirementAge, 0, getLifeExpectancyAge(), { spendDown: false });
-    if (!zeroCheck.depleted) return 0;
+    if (!zeroCheck.depleted) {
+      cashFlowTargetCache[cacheKey] = 0;
+      return 0;
+    }
 
     function buildPools(total) {
       return {
@@ -971,7 +1031,9 @@ document.addEventListener("DOMContentLoaded", function () {
       if (result.depleted) low = mid;
       else high = mid;
     }
-    return Math.max(high, 0);
+    var target = Math.max(high, 0);
+    cashFlowTargetCache[cacheKey] = target;
+    return target;
   }
 
   function calculateRetirementTargetAtAge(age) {
@@ -1065,20 +1127,23 @@ document.addEventListener("DOMContentLoaded", function () {
     };
     var estimatedAge = null;
 
-    for (var month = 1; month <= 1200; month++) {
-      projected.cash *= 1 + data.cashAnnualReturn / 100 / 12;
-      projected.deposit *= 1 + data.depositAnnualReturn / 100 / 12;
-      projected.investment *= 1 + data.investmentAnnualReturn / 100 / 12;
-      projected.investment += data.monthlyInvestment;
+    // 只以「年」尋找達標點；退休後詳細月度現金流仍由 05 引擎精算。
+    // 這可避免每輸入一次資料，就對 1200 個月份各自重新做一次 32 次二分搜尋。
+    for (var year = 1; year <= 100; year++) {
+      for (var month = 0; month < 12; month++) {
+        projected.cash *= 1 + data.cashAnnualReturn / 100 / 12;
+        projected.deposit *= 1 + data.depositAnnualReturn / 100 / 12;
+        projected.investment = projected.investment * (1 + data.investmentAnnualReturn / 100 / 12) + data.monthlyInvestment;
+      }
+      var age = data.currentAge + year;
       var total = projected.cash + projected.deposit + projected.investment;
-      var age = data.currentAge + month / 12;
       if (total >= calculateRetirementTargetAtAge(age)) {
         estimatedAge = age;
         break;
       }
     }
 
-    resultElement.textContent = estimatedAge === null ? "尚未達成" : estimatedAge.toFixed(1) + " 歲";
+    resultElement.textContent = estimatedAge === null ? "尚未達成" : estimatedAge.toFixed(0) + " 歲";
     return estimatedAge;
   }
   /* =====================================================
@@ -1439,6 +1504,9 @@ document.addEventListener("DOMContentLoaded", function () {
   }
   /* =====================================================
      12. 統一監聽輸入變更
+     =====================================================
+     輸入期間不執行完整現金流引擎，避免每個按鍵都重跑 04＋05＋勞退／勞保。
+     使用者按下右側浮動「試算」後才一次更新全部結果。
   ===================================================== */
   document.addEventListener("input", function (event) {
     var target = event.target;
@@ -1472,9 +1540,13 @@ document.addEventListener("DOMContentLoaded", function () {
       target.id === "laborInsuranceClaimAge" ||
       target.id === "projectionEndAge"
     ) {
-      updateAllRetirementCalculations();
+      if (target.closest("#cashList") || target.closest("#investmentList") || target.closest("#depositList")) {
+        updateAssetTotals();
+      }
+      markCalculationDirty();
     }
   });
+
   document.addEventListener("change", function (event) {
     var target = event.target;
     if (target.id === "projectionEndAge") {
@@ -1485,18 +1557,26 @@ document.addEventListener("DOMContentLoaded", function () {
       var maxAge = getLifeExpectancyAge();
       value = Math.max(currentAge, Math.min(value, maxAge));
       target.value = value;
-      updateAllRetirementCalculations();
+      markCalculationDirty();
       return;
     }
-    if (
-      target.closest("#cashList") ||
-      target.closest("#investmentList") ||
-      target.closest("#depositList")
-    ) {
+    if (target.closest("#cashList") || target.closest("#investmentList") || target.closest("#depositList")) {
       updateFxRateDisplay();
-      updateAllRetirementCalculations();
+      updateAssetTotals();
+      markCalculationDirty();
     }
   });
+
+  var calculateButton = document.getElementById("calculateBtn");
+  if (calculateButton) {
+    calculateButton.addEventListener("click", function () {
+      if (calculationDirty) {
+        clearCalculationCache();
+        updateAllRetirementCalculations();
+        finishCalculation();
+      }
+    });
+  }
   /* =====================================================
      13. 儲存資料
   ===================================================== */
@@ -1770,6 +1850,8 @@ document.addEventListener("DOMContentLoaded", function () {
     travelBudgetElement.textContent = formatNTD(getTravelBudget());
   }
   updateFxRateDisplay();
+  clearCalculationCache();
   updateAllRetirementCalculations();
+  finishCalculation();
   loadRetirementData();
 });
