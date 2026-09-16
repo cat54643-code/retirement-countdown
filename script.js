@@ -907,7 +907,7 @@ document.addEventListener("DOMContentLoaded", function () {
         investment: pools.investment,
         withdrawal: 0,
         income: getPostRetirementMonthlyIncomeAtAge(retirementAge, retirementAge),
-        annualNeed: baseAnnualExpense
+        annualNeed: calculateAnnualExpenseAtAge(retirementAge)
       });
     }
 
@@ -930,7 +930,10 @@ document.addEventListener("DOMContentLoaded", function () {
       pools.deposit *= 1 + rates.deposit;
       pools.investment *= 1 + rates.investment;
 
-      var years = month / 12;
+      // 通膨從「現在」起算：退休第一個月已經包含退休前累積的通膨，
+      // 之後再按退休後經過的月份持續增加。
+      var currentAge = getGoalCurrentAge();
+      var years = Math.max(retirementAge - currentAge, 0) + month / 12;
       var annualExpense = baseAnnualExpense * Math.pow(1 + inflationRate / 100, years);
       var monthlyExpense = annualExpense / 12;
       var monthlyIncome = getPostRetirementMonthlyIncomeAtAge(

@@ -1432,7 +1432,7 @@ footer {
 }
 
 
-/* v4.7.9：浮動試算按鈕固定於視窗右下角，並加入試算貓咪 Icon */
+/* v4.8.1：退休現金流通膨起算點修正；保留浮動試算按鈕與試算貓咪 Icon */
 .calculate-float-wrap {
   position: fixed;
   right: 24px;
