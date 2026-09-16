@@ -13,6 +13,42 @@ document.addEventListener("DOMContentLoaded", function () {
      - 儲存 / 載入 / 重設
   ===================================================== */
   var STORAGE_KEY = "retirementCountdownPlan";
+
+  /* =====================================================
+     GA4 互動追蹤
+     - 不送出資產金額、薪資、年齡等個人財務數值
+     - 只追蹤使用者走到哪個步驟、選了什麼功能、是否儲存
+  ===================================================== */
+  function trackEvent(eventName, params) {
+    if (typeof window.gtag === "function") {
+      window.gtag("event", eventName, params || {});
+    }
+  }
+
+  var trackedFields = {};
+  function trackFieldInteraction(target) {
+    if (!target || !target.id || trackedFields[target.id]) return;
+    trackedFields[target.id] = true;
+    trackEvent("field_interaction", { field_id: target.id });
+  }
+
+  function setupSectionTracking() {
+    if (typeof window.IntersectionObserver !== "function") return;
+    var sections = document.querySelectorAll(".card");
+    var trackedSections = {};
+    var observer = new IntersectionObserver(function(entries) {
+      entries.forEach(function(entry) {
+        if (!entry.isIntersecting || entry.intersectionRatio < 0.5) return;
+        var heading = entry.target.querySelector("h2");
+        var sectionName = heading ? heading.textContent.trim() : "unknown";
+        if (trackedSections[sectionName]) return;
+        trackedSections[sectionName] = true;
+        trackEvent("section_view", { section_name: sectionName });
+      });
+    }, { threshold: [0.5] });
+    sections.forEach(function(section) { observer.observe(section); });
+  }
+
   var fxRates = {
     TWD: 1,
     USD: 31.5,
@@ -76,6 +112,7 @@ document.addEventListener("DOMContentLoaded", function () {
       });
       button.classList.add("active");
       var goal = button.getAttribute("data-goal");
+      trackEvent("goal_select", { goal: goal });
       var fullSetting = document.getElementById("fullSetting");
       var microSetting = document.getElementById("microSetting");
       if (goal === "full") {
@@ -102,6 +139,7 @@ document.addEventListener("DOMContentLoaded", function () {
       inheritanceButtons.forEach(function (item) { item.classList.remove("active"); });
       button.classList.add("active");
       var plan = button.getAttribute("data-inheritance");
+      trackEvent("inheritance_plan_select", { plan: plan });
       if (selectedInheritance) {
         if (plan === "leave") selectedInheritance.textContent = "🏠 希望留下資產";
         if (plan === "self") selectedInheritance.textContent = "🫰 主要用在自己身上";
@@ -116,6 +154,7 @@ document.addEventListener("DOMContentLoaded", function () {
       retirementLifeButtons.forEach(function (item) { item.classList.remove("active"); });
       button.classList.add("active");
       var life = button.getAttribute("data-retirement-life");
+      trackEvent("retirement_lifestyle_select", { lifestyle: life });
       if (selectedLifestyle) {
         if (life === "stable") selectedLifestyle.textContent = "🌿 安安穩穩";
         if (life === "happy") selectedLifestyle.textContent = "✈️ 偶爾放鬆";
@@ -217,6 +256,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
     if (addCashBtn) {
     addCashBtn.addEventListener("click", function () {
+      trackEvent("add_asset", { asset_type: "cash" });
       createCashItem();
       updateAllRetirementCalculations();
     });
@@ -350,6 +390,7 @@ document.addEventListener("DOMContentLoaded", function () {
   var addInvestmentBtn = document.getElementById("addInvestmentBtn");
   if (addInvestmentBtn) {
     addInvestmentBtn.addEventListener("click", function () {
+      trackEvent("add_asset", { asset_type: "investment" });
       createInvestmentItem();
       updateAllRetirementCalculations();
     });
@@ -460,6 +501,7 @@ document.addEventListener("DOMContentLoaded", function () {
   var addDepositBtn = document.getElementById("addDepositBtn");
   if (addDepositBtn) {
     addDepositBtn.addEventListener("click", function () {
+      trackEvent("add_asset", { asset_type: "deposit" });
       createDepositItem();
       updateAllRetirementCalculations();
     });
@@ -1238,6 +1280,7 @@ document.addEventListener("DOMContentLoaded", function () {
   ===================================================== */
   document.addEventListener("input", function (event) {
     var target = event.target;
+    trackFieldInteraction(target);
     if (
       target.closest("#cashList") ||
       target.closest("#investmentList") ||
@@ -1273,6 +1316,7 @@ document.addEventListener("DOMContentLoaded", function () {
   document.addEventListener("change", function (event) {
     var target = event.target;
     if (target.id === "projectionEndAge") {
+      trackEvent("projection_range_change");
       var currentAge = getGoalCurrentAge();
       var value = Math.round(Number(target.value));
       if (!isFinite(value)) value = currentAge;
@@ -1508,13 +1552,20 @@ document.addEventListener("DOMContentLoaded", function () {
   var saveButton2 = document.getElementById("saveBtn2");
   var resetButton = document.getElementById("resetBtn");
   if (saveButton) {
-    saveButton.addEventListener("click", saveRetirementData);
+    saveButton.addEventListener("click", function () {
+      trackEvent("save_plan", { location: "header" });
+      saveRetirementData();
+    });
   }
   if (saveButton2) {
-    saveButton2.addEventListener("click", saveRetirementData);
+    saveButton2.addEventListener("click", function () {
+      trackEvent("save_plan", { location: "bottom" });
+      saveRetirementData();
+    });
   }
   if (resetButton) {
     resetButton.addEventListener("click", function () {
+      trackEvent("reset_plan");
       try {
         localStorage.removeItem(STORAGE_KEY);
       } catch (error) {
@@ -1523,6 +1574,8 @@ document.addEventListener("DOMContentLoaded", function () {
       location.reload();
     });
   }
+  setupSectionTracking();
+
   /* =====================================================
      16. 初始畫面
   ===================================================== */
