@@ -1369,9 +1369,12 @@ document.addEventListener("DOMContentLoaded", function () {
       }
 
       lastAssets = projectedAssets;
-      var targetAtAge = calculateRetirementTargetAtAge(age);
+      // 年齡軌跡的「退休達成率」統一比較第 04 區目前設定的退休目標。
+      // 不再把「假設現在才退休」的剩餘年限目標拿來比較，避免資產已經不足時，
+      // 因為剩餘規劃年限變短而在高齡突然顯示「已達成」。
+      var trajectoryTarget = data.retirementTarget;
       var available = getMonthlyAvailableAtAge(age, projectedAssets, retirementAge);
-      appendProjectionRow(age, projectedAssets, targetAtAge, available, isRetired);
+      appendProjectionRow(age, projectedAssets, trajectoryTarget, available, isRetired);
     }
 
     if (futureAssetsElement) futureAssetsElement.textContent = formatNTD(lastAssets);
