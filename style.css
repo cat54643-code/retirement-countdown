@@ -596,6 +596,12 @@ label small {
   font-size: 32px;
 }
 
+.life-icon-text {
+  font-family: Arial, "Segoe UI Symbol", sans-serif;
+  font-weight: 700;
+  line-height: 1;
+}
+
 .life-card strong {
   font-size: 18px;
 }

@@ -172,7 +172,7 @@ document.addEventListener("DOMContentLoaded", function () {
       trackEvent("inheritance_plan_select", { plan: plan });
       if (selectedInheritance) {
         if (plan === "leave") selectedInheritance.textContent = "🏠 希望留下資產";
-        if (plan === "self") selectedInheritance.textContent = "🫰 主要用在自己身上";
+        if (plan === "self") selectedInheritance.textContent = "♥ 主要用在自己身上";
         if (plan === "undecided") selectedInheritance.textContent = "🤔 尚未決定";
       }
       markCalculationDirty();
@@ -911,7 +911,11 @@ document.addEventListener("DOMContentLoaded", function () {
       });
     }
 
-    if (isSpendDownPlan() && options.spendDown !== false && monthsToEnd > 0) {
+    // 半退休模式的資產用途與完全退休不同：
+    // 半退休後先由工作收入支應生活費，資產只補「生活費－工作收入－勞退／勞保」的缺口。
+    // 因此即使遺產規劃選擇「主要用在自己身上」，也不應額外把剩餘資產攤提提領。
+    // 只有完全退休模式才依 self 模式把超過最低需求的資產規劃到終點。
+    if (getActiveGoal() === "full" && isSpendDownPlan() && options.spendDown !== false && monthsToEnd > 0) {
       if (isFinite(Number(options.extraMonthlyWithdrawal))) {
         extraMonthlyWithdrawal = Math.max(Number(options.extraMonthlyWithdrawal), 0);
       } else {
@@ -940,6 +944,8 @@ document.addEventListener("DOMContentLoaded", function () {
         retirementAge + month / 12,
         retirementAge
       );
+      // 完全退休：沒有工作收入，資產負責補足整個生活費缺口。
+      // 半退休：工作收入會先支付生活費，資產只補不足的部分。
       var baseWithdrawal = Math.max(monthlyExpense - monthlyIncome, 0);
       var withdrawal = baseWithdrawal + extraMonthlyWithdrawal;
       var shortfall = withdrawFromRetirementPools(pools, withdrawal);
@@ -1235,7 +1241,10 @@ document.addEventListener("DOMContentLoaded", function () {
     var protection = laborPensionMonthly + laborInsuranceMonthly;
     var fourPercent = projectedAssets * 0.04 / 12;
     var isRetirementPhase = retirementAge != null && age >= retirementAge;
-    var planningWithdrawal = isRetirementPhase
+    // 資產池已耗盡後，不應再顯示「資產規劃提領」；此時可動用金額只剩
+    // 實際仍存在的工作收入與勞退／勞保保障收入，避免出現「資產 = 0、
+    // 但每月可動用資產仍有數萬元」的矛盾。
+    var planningWithdrawal = isRetirementPhase && projectedAssets > 0
       ? Math.max(calculateAnnualExpenseAtAge(age) / 12 - salary - protection, 0)
       : 0;
     var total = salary + planningWithdrawal + protection;
@@ -1845,7 +1854,7 @@ document.addEventListener("DOMContentLoaded", function () {
   if (initialInheritance && selectedInheritance) {
     var initialInheritanceValue = initialInheritance.getAttribute("data-inheritance");
     if (initialInheritanceValue === "leave") selectedInheritance.textContent = "🏠 希望留下資產";
-    if (initialInheritanceValue === "self") selectedInheritance.textContent = "🫰 主要用在自己身上";
+    if (initialInheritanceValue === "self") selectedInheritance.textContent = "♥ 主要用在自己身上";
     if (initialInheritanceValue === "undecided") selectedInheritance.textContent = "🤔 尚未決定";
   }
   if (initialRetirementLife && selectedLifestyle && travelBudgetElement) {
