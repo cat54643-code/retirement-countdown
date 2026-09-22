@@ -128,26 +128,22 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
     var maxAssets = Math.max(previous.totalAssets, snapshot.totalAssets, 1);
-    var previousHeight = Math.max((previous.totalAssets / maxAssets) * 100, 8);
-    var currentHeight = Math.max((snapshot.totalAssets / maxAssets) * 100, 8);
+    var previousWidth = Math.max((previous.totalAssets / maxAssets) * 100, previous.totalAssets > 0 ? 8 : 0);
+    var currentWidth = Math.max((snapshot.totalAssets / maxAssets) * 100, snapshot.totalAssets > 0 ? 8 : 0);
     var previousLabel = formatNTD(previous.totalAssets);
     var currentLabel = formatNTD(snapshot.totalAssets);
 
     content.innerHTML =
       '<div class="comparison-summary">' +
-        '<div><span>總資產</span><strong>' + formatChange(assetChange) + '</strong></div>' +
+        '<div><span>總資產變化</span><strong>' + formatChange(assetChange) + '</strong></div>' +
         '<div><span>預估達成年齡</span><strong>' + ageText + '</strong></div>' +
       '</div>' +
-      '<div class="comparison-bars" role="img" aria-label="上次與這次總資產比較圖">' +
-        '<div class="comparison-bar-item">' +
-          '<strong>' + previousLabel + '</strong>' +
-          '<div class="comparison-bar-track"><div class="comparison-bar-fill previous" style="height:' + previousHeight.toFixed(1) + '%"></div></div>' +
-          '<span>上次</span>' +
+      '<div class="comparison-bars comparison-bars-horizontal" role="img" aria-label="上次與這次總資產比較圖">' +
+        '<div class="comparison-bar-row">' +
+          '<span>上次</span><div class="comparison-bar-track"><div class="comparison-bar-fill previous" style="width:' + previousWidth.toFixed(1) + '%"></div></div><strong>' + previousLabel + '</strong>' +
         '</div>' +
-        '<div class="comparison-bar-item">' +
-          '<strong>' + currentLabel + '</strong>' +
-          '<div class="comparison-bar-track"><div class="comparison-bar-fill current" style="height:' + currentHeight.toFixed(1) + '%"></div></div>' +
-          '<span>這次</span>' +
+        '<div class="comparison-bar-row">' +
+          '<span>這次</span><div class="comparison-bar-track"><div class="comparison-bar-fill current" style="width:' + currentWidth.toFixed(1) + '%"></div></div><strong>' + currentLabel + '</strong>' +
         '</div>' +
       '</div>';
   }
@@ -225,7 +221,7 @@ document.addEventListener("DOMContentLoaded", function () {
         : plannedRetirementAge + " 歲時，預估仍差 " + formatNTD(Math.max(retirementTarget - projectedAtRetirement, 0));
     }
     if (statusNoteElement) {
-      statusNoteElement.textContent = "目前總資產 " + formatNTD(data.currentAssets) + " → 退休時預估 " + formatNTD(projectedAtRetirement) + "；退休目標 " + formatNTD(retirementTarget) + "。";
+      statusNoteElement.textContent = retirementMet ? "目前設定下，退休時的預估資產已跨過目標。" : "目前設定下，退休時仍有資產缺口。";
     }
     if (summaryElement) {
       summaryElement.textContent = retirementMet
@@ -295,6 +291,60 @@ document.addEventListener("DOMContentLoaded", function () {
     var element = document.getElementById(id);
     if (!element) return 0;
     return Number(element.value) || 0;
+  }
+  function getAssetInputMode() {
+    var button = document.querySelector("[data-asset-mode].active");
+    return button ? button.getAttribute("data-asset-mode") : "strategy";
+  }
+  function getAnnualReturn(type) {
+    var ids = getAssetInputMode() === "detail"
+      ? { cash: "cashAnnualReturn", deposit: "depositAnnualReturn", investment: "investmentAnnualReturn" }
+      : { cash: "strategyCashReturn", deposit: "strategyDepositReturn", investment: "strategyInvestmentReturn" };
+    return getNumber(ids[type]);
+  }
+  function getStrategyAmount(type) {
+    var idMap = { cash: "strategyCashAmount", investment: "strategyInvestmentAmount", deposit: "strategyDepositAmount" };
+    return getNumber(idMap[type]);
+  }
+  function setStrategyAmount(type, value) {
+    var idMap = { cash: "strategyCashAmount", investment: "strategyInvestmentAmount", deposit: "strategyDepositAmount" };
+    var rangeMap = { cash: "strategyCashRange", investment: "strategyInvestmentRange", deposit: "strategyDepositRange" };
+    var amount = Math.max(0, Math.min(50000000, Math.round(Number(value) || 0)));
+    var amountInput = document.getElementById(idMap[type]);
+    var rangeInput = document.getElementById(rangeMap[type]);
+    if (amountInput) amountInput.value = amount;
+    if (rangeInput) rangeInput.value = amount;
+  }
+  function updateAssetInputModeUI() {
+    var mode = getAssetInputMode();
+    var strategyPanel = document.getElementById("strategyAssetPanel");
+    var detailPanel = document.getElementById("detailAssetPanel");
+    if (strategyPanel) strategyPanel.classList.toggle("hidden", mode !== "strategy");
+    if (detailPanel) detailPanel.classList.toggle("hidden", mode !== "detail");
+    document.querySelectorAll("[data-asset-mode]").forEach(function (button) {
+      button.classList.toggle("active", button.getAttribute("data-asset-mode") === mode);
+    });
+    // 讓詳細填寫頁看到的報酬率與目前策略設定保持一致。
+    var detailMap = {
+      cash: "cashAnnualReturn",
+      investment: "investmentAnnualReturn",
+      deposit: "depositAnnualReturn"
+    };
+    var strategyMap = {
+      cash: "strategyCashReturn",
+      investment: "strategyInvestmentReturn",
+      deposit: "strategyDepositReturn"
+    };
+    Object.keys(detailMap).forEach(function (type) {
+      var detail = document.getElementById(detailMap[type]);
+      var strategy = document.getElementById(strategyMap[type]);
+      if (!detail || !strategy) return;
+      if (mode === "detail" && strategy.dataset.seeded === "yes") {
+        strategy.value = detail.value;
+      } else if (mode === "strategy") {
+        detail.value = strategy.value;
+      }
+    });
   }
   function formatNTD(value) {
     return "NT$ " + Math.round(value || 0).toLocaleString();
@@ -386,6 +436,72 @@ document.addEventListener("DOMContentLoaded", function () {
       markCalculationDirty();
     });
   });
+  /* =====================================================
+     3. 資產輸入模式／策略估算
+  ===================================================== */
+  document.querySelectorAll("[data-asset-mode]").forEach(function (button) {
+    button.addEventListener("click", function () {
+      var mode = button.getAttribute("data-asset-mode");
+      var previousMode = getAssetInputMode();
+      if (mode === "strategy" && previousMode === "detail") {
+        // 第一次從詳細切回策略時，先把逐筆資料彙整成三大類，避免畫面突然歸零。
+        if (getStrategyAmount("cash") === 0) setStrategyAmount("cash", calculateDetailedCashTWD());
+        if (getStrategyAmount("investment") === 0) setStrategyAmount("investment", calculateDetailedInvestmentTWD());
+        if (getStrategyAmount("deposit") === 0) setStrategyAmount("deposit", calculateDetailedDepositTWD());
+      }
+      document.querySelectorAll("[data-asset-mode]").forEach(function (item) { item.classList.remove("active"); });
+      button.classList.add("active");
+      updateAssetInputModeUI();
+      trackEvent("asset_input_mode_select", { mode: mode });
+      updateAssetTotals();
+      markCalculationDirty();
+    });
+  });
+
+  [
+    ["cash", "strategyCashRange", "strategyCashAmount"],
+    ["investment", "strategyInvestmentRange", "strategyInvestmentAmount"],
+    ["deposit", "strategyDepositRange", "strategyDepositAmount"]
+  ].forEach(function (config) {
+    var type = config[0];
+    var range = document.getElementById(config[1]);
+    var amount = document.getElementById(config[2]);
+    if (range) {
+      range.addEventListener("input", function () {
+        setStrategyAmount(type, range.value);
+        if (getAssetInputMode() === "strategy") updateAssetTotals();
+        markCalculationDirty();
+      });
+    }
+    if (amount) {
+      amount.addEventListener("input", function () {
+        setStrategyAmount(type, amount.value);
+        if (getAssetInputMode() === "strategy") updateAssetTotals();
+        markCalculationDirty();
+      });
+    }
+  });
+
+  [
+    ["strategyCashReturn", "cashAnnualReturn"],
+    ["strategyInvestmentReturn", "investmentAnnualReturn"],
+    ["strategyDepositReturn", "depositAnnualReturn"]
+  ].forEach(function (pair) {
+    var strategy = document.getElementById(pair[0]);
+    var detail = document.getElementById(pair[1]);
+    if (!strategy || !detail) return;
+    strategy.addEventListener("input", function () {
+      detail.value = strategy.value;
+      markCalculationDirty();
+    });
+    detail.addEventListener("input", function () {
+      strategy.dataset.seeded = "yes";
+      if (getAssetInputMode() === "detail") markCalculationDirty();
+    });
+  });
+
+  updateAssetInputModeUI();
+
   /* =====================================================
      3. 現金｜建立單筆折疊項目
   ===================================================== */
@@ -660,11 +776,6 @@ document.addEventListener("DOMContentLoaded", function () {
             '</select>' +
             '<small class="fx-rate">1 TWD = NT$1</small>' +
           '</label>' +
-          '<label>' +
-            '<span>年利率</span>' +
-            '<input type="number" class="deposit-rate" value="0" min="0" step="0.01">' +
-            '<small>%</small>' +
-          '</label>' +
         '</div>' +
         '<div class="deposit-result">' +
           '<div><span>本金</span><strong class="deposit-principal">NT$ 0</strong></div>' +
@@ -675,7 +786,6 @@ document.addEventListener("DOMContentLoaded", function () {
     var name = box.querySelector(".deposit-name");
     var amount = box.querySelector(".deposit-amount");
     var currency = box.querySelector(".deposit-currency");
-    var rate = box.querySelector(".deposit-rate");
     var displayName = box.querySelector(".deposit-display-name");
     var displayValue = box.querySelector(".deposit-display-value");
 
@@ -690,13 +800,11 @@ document.addEventListener("DOMContentLoaded", function () {
     name.value = itemData.name || "";
     amount.value = itemData.amount || "0";
     currency.value = itemData.currency || "TWD";
-    rate.value = itemData.rate || "0";
     function calculateDeposit() {
       var depositAmount = Number(amount.value) || 0;
-      var depositRate = Number(rate.value) || 0;
       var currencyCode = currency.value || "TWD";
       var principalTWD = toTWD(depositAmount, currencyCode);
-      var interestTWD = toTWD(depositAmount * depositRate / 100, currencyCode);
+      var interestTWD = principalTWD * getAnnualReturn("deposit") / 100;
       displayName.textContent = name.value.trim() !== "" ? name.value.trim() : "新增定存";
       displayValue.textContent = formatNTD(principalTWD);
       principal.textContent = formatNTD(principalTWD);
@@ -705,7 +813,6 @@ document.addEventListener("DOMContentLoaded", function () {
     }
     name.addEventListener("input", calculateDeposit);
     amount.addEventListener("input", calculateDeposit);
-    rate.addEventListener("input", calculateDeposit);
     currency.addEventListener("change", calculateDeposit);
     box.querySelector(".deposit-summary").addEventListener("click", function (event) {
       if (event.target.closest(".delete-asset")) return;
@@ -737,48 +844,45 @@ document.addEventListener("DOMContentLoaded", function () {
   /* =====================================================
      6. 資產計算
   ===================================================== */
-  function calculateCashTWD() {
+  function calculateDetailedCashTWD() {
     var total = 0;
     document.querySelectorAll("#cashList .asset-item").forEach(function (item) {
       var amount = item.querySelector(".cash-amount");
       var currency = item.querySelector(".cash-currency");
-      if (amount) {
-        total += toTWD(
-          Number(amount.value) || 0,
-          currency ? currency.value : "TWD"
-        );
-      }
+      if (amount) total += toTWD(Number(amount.value) || 0, currency ? currency.value : "TWD");
     });
     return total;
   }
-  function calculateInvestmentTWD() {
+  function calculateDetailedInvestmentTWD() {
     var total = 0;
     document.querySelectorAll("#investmentList .asset-item").forEach(function (item) {
       var quantity = item.querySelector(".investment-quantity");
       var price = item.querySelector(".investment-price");
       var currency = item.querySelector(".investment-currency");
-      if (quantity && price) {
-        total += toTWD(
-          (Number(quantity.value) || 0) * (Number(price.value) || 0),
-          currency ? currency.value : "TWD"
-        );
-      }
+      if (quantity && price) total += toTWD((Number(quantity.value) || 0) * (Number(price.value) || 0), currency ? currency.value : "TWD");
     });
     return total;
   }
-  function calculateDepositTWD() {
+  function calculateDetailedDepositTWD() {
     var total = 0;
     document.querySelectorAll("#depositList .asset-item").forEach(function (item) {
       var amount = item.querySelector(".deposit-amount");
       var currency = item.querySelector(".deposit-currency");
-      if (amount) {
-        total += toTWD(
-          Number(amount.value) || 0,
-          currency ? currency.value : "TWD"
-        );
-      }
+      if (amount) total += toTWD(Number(amount.value) || 0, currency ? currency.value : "TWD");
     });
     return total;
+  }
+  function calculateCashTWD() {
+    if (getAssetInputMode() === "strategy") return getStrategyAmount("cash");
+    return calculateDetailedCashTWD();
+  }
+  function calculateInvestmentTWD() {
+    if (getAssetInputMode() === "strategy") return getStrategyAmount("investment");
+    return calculateDetailedInvestmentTWD();
+  }
+  function calculateDepositTWD() {
+    if (getAssetInputMode() === "strategy") return getStrategyAmount("deposit");
+    return calculateDetailedDepositTWD();
   }
   function updateAssetTotals() {
     var cashTotal = calculateCashTWD();
@@ -897,9 +1001,9 @@ document.addEventListener("DOMContentLoaded", function () {
       deposit: calculateDepositTWD(),
       investment: calculateInvestmentTWD()
     };
-    var cashAnnualReturn = getNumber("cashAnnualReturn");
-    var depositAnnualReturn = getNumber("depositAnnualReturn");
-    var investmentAnnualReturn = getNumber("investmentAnnualReturn");
+    var cashAnnualReturn = getAnnualReturn("cash");
+    var depositAnnualReturn = getAnnualReturn("deposit");
+    var investmentAnnualReturn = getAnnualReturn("investment");
     var monthlyInvestment = getNumber("monthlyInvestment");
     var months = Math.max(Math.ceil((targetAge - currentAge) * 12), 0);
     for (var month = 0; month < months; month++) {
@@ -913,11 +1017,11 @@ document.addEventListener("DOMContentLoaded", function () {
   function getRetirementAnnualReturnAtAge(retirementAge) {
     var projected = getProjectedAssetBreakdownAtAge(retirementAge);
     var total = projected.cash + projected.deposit + projected.investment;
-    if (total <= 0) return getNumber("investmentAnnualReturn");
+    if (total <= 0) return getAnnualReturn("investment");
     return (
-      projected.cash * getNumber("cashAnnualReturn") +
-      projected.deposit * getNumber("depositAnnualReturn") +
-      projected.investment * getNumber("investmentAnnualReturn")
+      projected.cash * getAnnualReturn("cash") +
+      projected.deposit * getAnnualReturn("deposit") +
+      projected.investment * getAnnualReturn("investment")
     ) / total;
   }
 
@@ -998,9 +1102,9 @@ document.addEventListener("DOMContentLoaded", function () {
 
   function getRetirementPoolRates() {
     return {
-      cash: getNumber("cashAnnualReturn") / 100 / 12,
-      deposit: getNumber("depositAnnualReturn") / 100 / 12,
-      investment: getNumber("investmentAnnualReturn") / 100 / 12
+      cash: getAnnualReturn("cash") / 100 / 12,
+      deposit: getAnnualReturn("deposit") / 100 / 12,
+      investment: getAnnualReturn("investment") / 100 / 12
     };
   }
 
@@ -1264,9 +1368,9 @@ document.addEventListener("DOMContentLoaded", function () {
       inflationRate: getInflationRate(),
       balances: balances,
       monthlyInvestment: getNumber("monthlyInvestment"),
-      cashAnnualReturn: getNumber("cashAnnualReturn"),
-      depositAnnualReturn: getNumber("depositAnnualReturn"),
-      investmentAnnualReturn: getNumber("investmentAnnualReturn"),
+      cashAnnualReturn: getAnnualReturn("cash"),
+      depositAnnualReturn: getAnnualReturn("deposit"),
+      investmentAnnualReturn: getAnnualReturn("investment"),
       inheritancePlan: getInheritancePlan()
     };
   }
@@ -1459,9 +1563,9 @@ document.addEventListener("DOMContentLoaded", function () {
       investment: calculateInvestmentTWD()
     };
     var months = Math.max(Math.round((targetAge - currentAge) * 12), 0);
-    var cashRate = getNumber("cashAnnualReturn") / 100 / 12;
-    var depositRate = getNumber("depositAnnualReturn") / 100 / 12;
-    var investmentRate = getNumber("investmentAnnualReturn") / 100 / 12;
+    var cashRate = getAnnualReturn("cash") / 100 / 12;
+    var depositRate = getAnnualReturn("deposit") / 100 / 12;
+    var investmentRate = getAnnualReturn("investment") / 100 / 12;
     var monthlyInvestment = getNumber("monthlyInvestment");
     for (var month = 0; month < months; month++) {
       projected.cash *= 1 + cashRate;
@@ -1731,9 +1835,15 @@ document.addEventListener("DOMContentLoaded", function () {
       target.id === "microIncome" ||
       target.id === "microExpense" ||
       target.id === "inflationRate" ||
+      target.id === "strategyCashReturn" ||
+      target.id === "strategyDepositReturn" ||
+      target.id === "strategyInvestmentReturn" ||
       target.id === "cashAnnualReturn" ||
       target.id === "depositAnnualReturn" ||
       target.id === "investmentAnnualReturn" ||
+      target.id === "strategyCashAmount" ||
+      target.id === "strategyDepositAmount" ||
+      target.id === "strategyInvestmentAmount" ||
       target.id === "monthlyInvestment" ||
       target.id === "laborPensionBalance" ||
       target.id === "laborPensionSalary" ||
@@ -1809,6 +1919,12 @@ document.addEventListener("DOMContentLoaded", function () {
       "microIncome",
       "microExpense",
       "inflationRate",
+      "strategyCashAmount",
+      "strategyInvestmentAmount",
+      "strategyDepositAmount",
+      "strategyCashReturn",
+      "strategyInvestmentReturn",
+      "strategyDepositReturn",
       "cashAnnualReturn",
       "depositAnnualReturn",
       "investmentAnnualReturn",
@@ -1829,6 +1945,16 @@ document.addEventListener("DOMContentLoaded", function () {
       var element = document.getElementById(id);
       if (element) data[id] = element.value;
     });
+    data.assetInputMode = getAssetInputMode();
+    data.cashAnnualReturn = getAnnualReturn("cash");
+    data.depositAnnualReturn = getAnnualReturn("deposit");
+    data.investmentAnnualReturn = getAnnualReturn("investment");
+    data.strategyCashAmount = getStrategyAmount("cash");
+    data.strategyInvestmentAmount = getStrategyAmount("investment");
+    data.strategyDepositAmount = getStrategyAmount("deposit");
+    data.strategyCashReturn = getNumber("strategyCashReturn");
+    data.strategyInvestmentReturn = getNumber("strategyInvestmentReturn");
+    data.strategyDepositReturn = getNumber("strategyDepositReturn");
     data.goal = getActiveGoal();
     data.inheritancePlan = getActiveInheritancePlan();
     data.retirementLifestyle = getActiveRetirementLifestyle();
@@ -1877,12 +2003,10 @@ document.addEventListener("DOMContentLoaded", function () {
       var name = item.querySelector(".deposit-name");
       var amount = item.querySelector(".deposit-amount");
       var currency = item.querySelector(".deposit-currency");
-      var rate = item.querySelector(".deposit-rate");
       deposit.push({
         name: name ? name.value : "",
         amount: amount ? amount.value : "0",
-        currency: currency ? currency.value : "TWD",
-        rate: rate ? rate.value : "0"
+        currency: currency ? currency.value : "TWD"
       });
     });
     return deposit;
@@ -1947,9 +2071,6 @@ document.addEventListener("DOMContentLoaded", function () {
       "microIncome",
       "microExpense",
       "inflationRate",
-      "cashAnnualReturn",
-      "depositAnnualReturn",
-      "investmentAnnualReturn",
       "monthlyInvestment",
       "projectionEndAge",
       "laborPensionBalance",
@@ -1967,6 +2088,32 @@ document.addEventListener("DOMContentLoaded", function () {
       var element = document.getElementById(id);
       if (element && data[id] !== undefined) element.value = data[id];
     });
+    if (data.cashAnnualReturn !== undefined) {
+      var cashReturn = document.getElementById("cashAnnualReturn");
+      if (cashReturn) cashReturn.value = data.cashAnnualReturn;
+      var strategyCashReturn = document.getElementById("strategyCashReturn");
+      if (strategyCashReturn) strategyCashReturn.value = data.strategyCashReturn !== undefined ? data.strategyCashReturn : data.cashAnnualReturn;
+    }
+    if (data.depositAnnualReturn !== undefined) {
+      var depositReturn = document.getElementById("depositAnnualReturn");
+      if (depositReturn) depositReturn.value = data.depositAnnualReturn;
+      var strategyDepositReturn = document.getElementById("strategyDepositReturn");
+      if (strategyDepositReturn) strategyDepositReturn.value = data.strategyDepositReturn !== undefined ? data.strategyDepositReturn : data.depositAnnualReturn;
+    }
+    if (data.investmentAnnualReturn !== undefined) {
+      var investmentReturn = document.getElementById("investmentAnnualReturn");
+      if (investmentReturn) investmentReturn.value = data.investmentAnnualReturn;
+      var strategyInvestmentReturn = document.getElementById("strategyInvestmentReturn");
+      if (strategyInvestmentReturn) strategyInvestmentReturn.value = data.strategyInvestmentReturn !== undefined ? data.strategyInvestmentReturn : data.investmentAnnualReturn;
+    }
+    [
+      ["cash", data.strategyCashAmount],
+      ["investment", data.strategyInvestmentAmount],
+      ["deposit", data.strategyDepositAmount]
+    ].forEach(function (item) { if (item[1] !== undefined) setStrategyAmount(item[0], item[1]); });
+    var savedAssetMode = data.assetInputMode || ((Array.isArray(data.cash) && data.cash.length) || (Array.isArray(data.investment) && data.investment.length) || (Array.isArray(data.deposit) && data.deposit.length) ? "detail" : "strategy");
+    var assetModeButton = document.querySelector('[data-asset-mode="' + savedAssetMode + '"]');
+    if (assetModeButton) assetModeButton.click();
     if (data.goal) {
       var goalButton = document.querySelector('[data-goal="' + data.goal + '"]');
       if (goalButton) goalButton.click();
@@ -2067,6 +2214,7 @@ document.addEventListener("DOMContentLoaded", function () {
     travelBudgetElement.textContent = formatNTD(getTravelBudget());
   }
   updateFxRateDisplay();
+  updateAssetInputModeUI();
   clearCalculationCache();
   updateAllRetirementCalculations();
   finishCalculation();

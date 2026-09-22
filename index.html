@@ -45,7 +45,7 @@
     </div>
 
     <div class="progress-title">
-      <strong>退休資產達成率</strong>
+      <strong>退休時預估達成率</strong>
       <strong id="progressPercent">0%</strong>
     </div>
 
@@ -54,7 +54,7 @@
     </div>
 
     <div class="progress-bottom">
-      <span>目前資產 <strong id="progressCurrent">NT$ 0</strong></span>
+      <span>退休時預估資產 <strong id="progressCurrent">NT$ 0</strong></span>
       <span>退休目標 <strong id="progressTarget">NT$ 0</strong></span>
     </div>
 
@@ -243,125 +243,141 @@
       <div class="section-number">02</div>
       <div>
         <h2>我的資產</h2>
-        <p>輸入你的現金、投資與定存</p>
+        <p>先用簡單方式估算，也可以再慢慢補完整</p>
       </div>
     </div>
 
     <div class="privacy-note">🔒 財務數字只用於瀏覽器內試算，不會上傳；儲存規劃與進度紀錄也只保留在目前裝置。</div>
 
-    <div class="beginner-guide">
-      <strong>👋 第一次使用？先不用算得很精準</strong>
-      <p>現金＝活存／手上現金；投資＝股票／ETF／基金；定存＝台幣或外幣定存。<br>不知道精確數字時，先填目前大約金額即可，之後再補正。</p>
+    <div class="asset-mode-switch" role="tablist" aria-label="資產填寫方式">
+      <button type="button" class="asset-mode-btn active" data-asset-mode="strategy">
+        <strong>📊 策略估算</strong>
+        <span>先抓大方向，快速完成試算</span>
+      </button>
+      <button type="button" class="asset-mode-btn" data-asset-mode="detail">
+        <strong>🔎 詳細填寫</strong>
+        <span>把現金、投資、定存逐筆拆開</span>
+      </button>
     </div>
 
-    <!-- 現金 -->
-    <div class="asset-group">
-
-      <div class="asset-group-header">
-
-        <div>
-          <span class="asset-group-icon">💵</span>
-          <strong>現金</strong>
-          <small>活儲、現金、高利活儲</small>
-        </div>
-
-        <div class="asset-group-total" id="cashTotal">
-          NT$ 0
-        </div>
-
+    <div class="asset-mode-panel" id="strategyAssetPanel">
+      <div class="asset-mode-intro">
+        <strong>先估一個大概就可以</strong>
+        <span>拖曳金額，也可以直接輸入數字；年報酬率會一起帶入後續資產軌跡。</span>
       </div>
 
-      <div id="cashList"></div>
+      <div class="asset-empty-note">尚未填入資產時，「目前總資產」會維持 NT$ 0；退休目標是另一個獨立的計算結果。</div>
 
-      <button class="add-btn" id="addCashBtn">
-        ＋ 新增現金
-      </button>
+      <div class="strategy-asset-list">
+        <div class="strategy-asset-card">
+          <div class="strategy-asset-head">
+            <div><span class="asset-group-icon">💵</span><strong>現金</strong></div>
+            <label class="strategy-amount-input"><input type="number" id="strategyCashAmount" value="0" min="0" max="50000000" step="10000"><span>元</span></label>
+          </div>
+          <input class="strategy-range" id="strategyCashRange" type="range" min="0" max="50000000" step="10000" value="0" aria-label="現金金額">
+          <label class="strategy-return"><span>年報酬率</span><input type="number" id="strategyCashReturn" value="0" min="-10" max="20" step="0.1"><span>%</span></label>
+        </div>
 
+        <div class="strategy-asset-card">
+          <div class="strategy-asset-head">
+            <div><span class="asset-group-icon">📈</span><strong>投資</strong></div>
+            <label class="strategy-amount-input"><input type="number" id="strategyInvestmentAmount" value="0" min="0" max="50000000" step="10000"><span>元</span></label>
+          </div>
+          <input class="strategy-range" id="strategyInvestmentRange" type="range" min="0" max="50000000" step="10000" value="0" aria-label="投資金額">
+          <label class="strategy-return"><span>年報酬率</span><input type="number" id="strategyInvestmentReturn" value="6" min="-20" max="30" step="0.1"><span>%</span></label>
+        </div>
+
+        <div class="strategy-asset-card">
+          <div class="strategy-asset-head">
+            <div><span class="asset-group-icon">🏦</span><strong>定存</strong></div>
+            <label class="strategy-amount-input"><input type="number" id="strategyDepositAmount" value="0" min="0" max="50000000" step="10000"><span>元</span></label>
+          </div>
+          <input class="strategy-range" id="strategyDepositRange" type="range" min="0" max="50000000" step="10000" value="0" aria-label="定存金額">
+          <label class="strategy-return"><span>年報酬率</span><input type="number" id="strategyDepositReturn" value="2" min="-10" max="20" step="0.1"><span>%</span></label>
+        </div>
+      </div>
     </div>
 
-
-    <!-- 投資 -->
-    <div class="asset-group">
-
-      <div class="asset-group-header">
-
-        <div>
-          <span class="asset-group-icon">📈</span>
-          <strong>投資</strong>
-          <small>台股、美股、ETF</small>
-        </div>
-
-        <div class="asset-group-total" id="investmentTotal">
-          NT$ 0
-        </div>
-
+    <div class="asset-mode-panel hidden" id="detailAssetPanel">
+      <div class="asset-mode-intro">
+        <strong>想算得更精準，再逐筆填寫</strong>
+        <span>每個資產類別的年報酬率也直接放在這裡，不必再到 05 區設定。</span>
       </div>
 
-      <div id="investmentList"></div>
-
-      <button class="add-btn" id="addInvestmentBtn">
-        ＋ 新增投資
-      </button>
-
-    </div>
-
-
-    <!-- 定存 -->
-    <div class="asset-group">
-
-      <div class="asset-group-header">
-
-        <div>
-          <span class="asset-group-icon">🏦</span>
-          <strong>定存</strong>
-          <small>台幣定存、外幣定存</small>
+      <!-- 現金 -->
+      <div class="asset-group">
+        <div class="asset-group-header asset-group-header-detail">
+          <div>
+            <span class="asset-group-icon">💵</span>
+            <strong>現金</strong>
+            <small>活儲、現金、高利活儲</small>
+          </div>
+          <div class="asset-group-meta">
+            <div class="asset-group-total" id="cashTotal">NT$ 0</div>
+            <label class="group-return"><span>年報酬率</span><input type="number" id="cashAnnualReturn" value="0" min="-10" max="20" step="0.1"><span>%</span></label>
+          </div>
         </div>
-
-        <div class="asset-group-total" id="depositTotal">
-          NT$ 0
-        </div>
-
+        <div id="cashList"></div>
+        <button class="add-btn" id="addCashBtn">＋ 新增現金</button>
       </div>
 
-      <div id="depositList"></div>
+      <!-- 投資 -->
+      <div class="asset-group">
+        <div class="asset-group-header asset-group-header-detail">
+          <div>
+            <span class="asset-group-icon">📈</span>
+            <strong>投資</strong>
+            <small>台股、美股、ETF</small>
+          </div>
+          <div class="asset-group-meta">
+            <div class="asset-group-total" id="investmentTotal">NT$ 0</div>
+            <label class="group-return"><span>年報酬率</span><input type="number" id="investmentAnnualReturn" value="6" min="-20" max="30" step="0.1"><span>%</span></label>
+          </div>
+        </div>
+        <div id="investmentList"></div>
+        <button class="add-btn" id="addInvestmentBtn">＋ 新增投資</button>
+      </div>
 
-      <button class="add-btn" id="addDepositBtn">
-        ＋ 新增定存
-      </button>
-
+      <!-- 定存 -->
+      <div class="asset-group">
+        <div class="asset-group-header asset-group-header-detail">
+          <div>
+            <span class="asset-group-icon">🏦</span>
+            <strong>定存</strong>
+            <small>台幣定存、外幣定存</small>
+          </div>
+          <div class="asset-group-meta">
+            <div class="asset-group-total" id="depositTotal">NT$ 0</div>
+            <label class="group-return"><span>年報酬率</span><input type="number" id="depositAnnualReturn" value="2" min="-10" max="20" step="0.1"><span>%</span></label>
+          </div>
+        </div>
+        <div id="depositList"></div>
+        <button class="add-btn" id="addDepositBtn">＋ 新增定存</button>
+      </div>
     </div>
 
+    <div class="asset-saving-plan">
+      <label>
+        <span>退休前每月新增投資</span>
+        <input type="number" id="monthlyInvestment" value="20000" min="0" step="1000">
+        <small>NT$ / 月</small>
+      </label>
+      <em>自動持續投入至設定的退休／FIRE年齡；退休後預設停止。</em>
+    </div>
 
     <!-- 資產配置 -->
     <div class="allocation">
-
       <div class="sub-title">資產配置</div>
-
       <div class="allocation-bar">
         <div class="allocation-cash" id="allocationCash"></div>
         <div class="allocation-investment" id="allocationInvestment"></div>
         <div class="allocation-deposit" id="allocationDeposit"></div>
       </div>
-
       <div class="allocation-legend">
-
-        <span>
-          <i class="dot cash"></i>
-          現金 <b id="cashPercent">0%</b>
-        </span>
-
-        <span>
-          <i class="dot investment"></i>
-          投資 <b id="investmentPercent">0%</b>
-        </span>
-
-        <span>
-          <i class="dot deposit"></i>
-          定存 <b id="depositPercent">0%</b>
-        </span>
-
+        <span><i class="dot cash"></i>現金 <b id="cashPercent">0%</b></span>
+        <span><i class="dot investment"></i>投資 <b id="investmentPercent">0%</b></span>
+        <span><i class="dot deposit"></i>定存 <b id="depositPercent">0%</b></span>
       </div>
-
     </div>
 
   </section>
@@ -476,143 +492,43 @@
       </label>
     </div>
 
-    <div class="planning-subsection">
-      <div class="sub-title">📈 退休前累積規劃</div>
-      <div class="form-grid">
-        <label>
-          <span>退休前每月新增投資</span>
-          <input type="number" id="monthlyInvestment" value="20000" step="1000">
-          <small>NT$ / 月</small>
-          <em class="field-hint">自動持續投入至設定的退休／FIRE年齡；退休後預設停止</em>
-        </label>
-      </div>
-    </div>
-
-    <div class="result-grid">
-
-      <div class="result-card">
-        <span>退休後每年資產缺口</span>
-        <strong id="annualNeed">NT$ 0</strong>
-      </div>
-
-      <div class="result-card highlight">
-        <span>退休時最低所需資產</span>
-        <strong id="retirementTarget">NT$ 0</strong>
-      </div>
-
-      <div class="result-card">
-        <span>退休時預估還差</span>
-        <strong id="remainingTarget">NT$ 0</strong>
-      </div>
-
-      <div class="result-card">
-        <span>設定退休年齡</span>
-        <strong id="retirementAgeResult">55 歲</strong>
-      </div>
-
-      <div class="result-card">
-        <span>規劃終點預估剩餘資產</span>
-        <strong id="age85Remaining">NT$ 0</strong>
-      </div>
-
-    </div>
-
-
-
     <div class="pension-card">
       <div class="pension-title">🏦 勞退／勞保退休保障</div>
       <div class="pension-subtitle">
-        這裡把「勞退新制個人專戶」與「勞保老年年金」分開估算；它們不會直接算進目前總資產，避免把尚未可領的退休保障誤當成現金資產。
+        這裡專注設定退休後可取得的保障收入；它們不會直接算進目前總資產。
       </div>
 
       <div class="sub-title">勞退新制</div>
       <div class="form-grid pension-grid">
-        <label>
-          <span>目前勞退專戶餘額</span>
-          <input type="number" id="laborPensionBalance" value="0" min="0" step="10000">
-          <small>NT$</small>
-        </label>
-        <label>
-          <span>勞退計算月薪</span>
-          <input type="number" id="laborPensionSalary" value="0" min="0" step="1000">
-          <small>NT$ / 月</small>
-        </label>
-        <label>
-          <span>雇主提繳率</span>
-          <input type="number" id="laborPensionEmployerRate" value="6" min="0" max="6" step="0.1">
-          <small>%</small>
-        </label>
-        <label>
-          <span>個人自提率</span>
-          <input type="number" id="laborPensionSelfRate" value="0" min="0" max="6" step="0.1">
-          <small>%</small>
-        </label>
-        <label>
-          <span>勞退預估年報酬率</span>
-          <input type="number" id="laborPensionReturn" value="2" min="0" max="10" step="0.1">
-          <small>% / 年</small>
-        </label>
-        <label>
-          <span>預估勞退請領年齡</span>
-          <input type="number" id="laborPensionClaimAge" value="60" min="60" max="100">
-          <small>歲</small>
-        </label>
+        <label><span>目前勞退專戶餘額</span><input type="number" id="laborPensionBalance" value="0" min="0" step="10000"><small>NT$</small></label>
+        <label><span>勞退計算月薪</span><input type="number" id="laborPensionSalary" value="0" min="0" step="1000"><small>NT$ / 月</small></label>
+        <label><span>雇主提繳率</span><input type="number" id="laborPensionEmployerRate" value="6" min="0" max="6" step="0.1"><small>%</small></label>
+        <label><span>個人自提率</span><input type="number" id="laborPensionSelfRate" value="0" min="0" max="6" step="0.1"><small>%</small></label>
+        <label><span>勞退預估年報酬率</span><input type="number" id="laborPensionReturn" value="2" min="0" max="10" step="0.1"><small>% / 年</small></label>
+        <label><span>預估勞退請領年齡</span><input type="number" id="laborPensionClaimAge" value="60" min="60" max="100"><small>歲</small></label>
       </div>
 
       <div class="sub-title">勞保老年年金</div>
       <div class="form-grid pension-grid">
-        <label>
-          <span>目前勞保年資</span>
-          <input type="number" id="laborInsuranceYears" value="0" min="0" max="60" step="0.1">
-          <small>年</small>
-        </label>
-        <label>
-          <span>平均月投保薪資</span>
-          <input type="number" id="laborInsuranceSalary" value="0" min="0" step="1000">
-          <small>NT$ / 月</small>
-        </label>
-        <label>
-          <span>預計持續投保至</span>
-          <input type="number" id="laborInsuranceWorkUntilAge" value="65" min="18" max="100">
-          <small>歲</small>
-        </label>
-        <label>
-          <span>預估勞保請領年齡</span>
-          <input type="number" id="laborInsuranceClaimAge" value="65" min="60" max="70">
-          <small>歲</small>
-        </label>
+        <label><span>目前勞保年資</span><input type="number" id="laborInsuranceYears" value="0" min="0" max="60" step="0.1"><small>年</small></label>
+        <label><span>平均月投保薪資</span><input type="number" id="laborInsuranceSalary" value="0" min="0" step="1000"><small>NT$ / 月</small></label>
+        <label><span>預計持續投保至</span><input type="number" id="laborInsuranceWorkUntilAge" value="65" min="18" max="100"><small>歲</small></label>
+        <label><span>預估勞保請領年齡</span><input type="number" id="laborInsuranceClaimAge" value="65" min="60" max="70"><small>歲</small></label>
       </div>
 
       <div class="pension-result">
-        <div>
-          <span>預估勞退專戶</span>
-          <strong id="laborPensionProjected">NT$ 0</strong>
-        </div>
-        <div>
-          <span>勞保老年年金／月</span>
-          <strong id="laborInsuranceMonthly">NT$ 0</strong>
-        </div>
-        <div>
-          <span>兩者皆可請領後保障／月</span>
-          <strong id="retirementProtectionMonthly">NT$ 0</strong>
-        </div>
+        <div><span>預估勞退專戶</span><strong id="laborPensionProjected">NT$ 0</strong></div>
+        <div><span>勞保老年年金／月</span><strong id="laborInsuranceMonthly">NT$ 0</strong></div>
+        <div><span>兩者皆可請領後保障／月</span><strong id="retirementProtectionMonthly">NT$ 0</strong></div>
       </div>
 
-      <div class="pension-note">
-        💡 勞退新制年滿 60 歲可請領；勞保老年年金自 2026 年起法定請領年齡為 65 歲，一般情況可提前最多 5 年請領，但每提前 1 年減給 4%。以上為規劃用估算值，實際金額應以勞保局個人試算結果為準。
-      </div>
+      <div class="pension-note">💡 勞退新制年滿 60 歲可請領；勞保老年年金自 2026 年起法定請領年齡為 65 歲，一般情況可提前最多 5 年請領，但每提前 1 年減給 4%。以上為規劃用估算值，實際金額應以勞保局個人試算結果為準。</div>
     </div>
 
     <div class="calculation-note">
-
-      <strong>📌 試算方式</strong>
-
-      <p>
-        <span id="calculationNoteText">04、05 與勞退／勞保共用同一套月度現金流，會依退休年齡、通膨、三種資產報酬率與退休保障收入估算退休時最低所需資產。</span>
-      </p>
-
+      <strong>📌 這一區主要看兩件事</strong>
+      <p>退休後通膨會把生活費推高多少，以及勞退／勞保未來能補上多少生活費。</p>
     </div>
-
   </section>
 
 
@@ -630,34 +546,15 @@
 
 
     <div class="form-grid projection-form">
-
-      <label>
-        <span>現金年報酬率</span>
-        <input type="number" id="cashAnnualReturn" value="0" step="0.1">
-        <small>%</small>
-      </label>
-
-      <label>
-        <span>定存年報酬率</span>
-        <input type="number" id="depositAnnualReturn" value="2" step="0.1">
-        <small>%</small>
-      </label>
-
-      <label>
-        <span>投資年報酬率</span>
-        <input type="number" id="investmentAnnualReturn" value="6" step="0.1">
-        <small>%</small>
-      </label>
-
       <label>
         <span>推估至幾歲？</span>
         <input type="number" id="projectionEndAge" value="65" min="33" max="85">
         <small>歲</small>
         <em class="field-hint">只控制年齡軌跡顯示到幾歲，不代表持續投資到這個年齡</em>
       </label>
-
     </div>
 
+    <div class="projection-assumption-note">年報酬率已移到「02 我的資產」，會依現金、投資、定存分別套用。</div>
 
     <div class="projection-result">
 
