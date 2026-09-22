@@ -61,8 +61,51 @@
   </section>
 
 
+  <!-- 試算結果：點擊浮動「試算」後直接進入結果區 -->
+  <section class="result-dashboard card hidden" id="resultDashboard" aria-live="polite">
+    <div class="result-dashboard-head">
+      <div>
+        <span class="result-dashboard-kicker">📊 你的試算結果</span>
+        <h2 id="resultDashboardTitle">你的退休進度</h2>
+        <p id="resultDashboardSummary">完成試算後，這裡會整理目前結果與下一步。</p>
+      </div>
+      <span class="result-updated" id="resultUpdatedAt"></span>
+    </div>
+
+    <div class="result-dashboard-grid">
+      <div class="dashboard-metric">
+        <span>預估退休年齡</span>
+        <strong id="dashboardRetirementAge">—</strong>
+      </div>
+      <div class="dashboard-metric highlight">
+        <span>退休時最低所需資產</span>
+        <strong id="dashboardRetirementTarget">—</strong>
+      </div>
+      <div class="dashboard-metric">
+        <span>目前總資產</span>
+        <strong id="dashboardCurrentAssets">—</strong>
+      </div>
+      <div class="dashboard-metric">
+        <span>規劃終點剩餘資產</span>
+        <strong id="dashboardEndAssets">—</strong>
+      </div>
+    </div>
+
+    <div class="next-step-card">
+      <div class="dashboard-section-title">🧭 你的下一步</div>
+      <p class="dashboard-section-subtitle">如果你想看看不同路徑，可以直接改一個條件，再試算一次。</p>
+      <div class="next-step-grid" id="nextStepGrid"></div>
+    </div>
+
+    <div class="comparison-card" id="comparisonCard">
+      <div class="dashboard-section-title">📈 和上次相比</div>
+      <div id="comparisonContent"></div>
+    </div>
+  </section>
+
+
   <!-- 01 我的退休目標 -->
-  <section class="card">
+  <section class="card" id="section01">
 
     <div class="section-title">
       <div class="section-number">01</div>
@@ -189,7 +232,7 @@
 
 
   <!-- 02 我的資產 -->
-  <section class="card">
+  <section class="card" id="section02">
 
     <div class="section-title">
       <div class="section-number">02</div>
@@ -198,6 +241,8 @@
         <p>輸入你的現金、投資與定存</p>
       </div>
     </div>
+
+    <div class="privacy-note">🔒 財務數字只用於瀏覽器內試算，不會上傳；儲存規劃與進度紀錄也只保留在目前裝置。</div>
 
     <div class="beginner-guide">
       <strong>👋 第一次使用？先不用算得很精準</strong>
@@ -318,7 +363,7 @@
 
 
   <!-- 03 你希望這筆錢怎麼使用？ -->
-  <section class="card">
+  <section class="card" id="section03">
 
     <div class="section-title">
       <div class="section-number">03</div>
@@ -406,7 +451,7 @@
 
 
   <!-- 04 退休計算 -->
-  <section class="card">
+  <section class="card" id="section04">
 
     <div class="section-title">
       <div class="section-number">04</div>
@@ -567,7 +612,7 @@
 
 
   <!-- 05 年齡資產軌跡 -->
-  <section class="card">
+  <section class="card" id="section05">
 
     <div class="section-title">
       <div class="section-number">05</div>
@@ -633,7 +678,7 @@
 
 
   <!-- 06 資料管理 -->
-  <section class="card">
+  <section class="card" id="section06">
 
     <div class="section-title">
       <div class="section-number">06</div>
@@ -676,7 +721,7 @@
   <button type="button" id="calculateBtn" class="calculate-float-btn"><img src="./calculator-cat-icon.png" alt="" class="calculate-float-icon"><span>試算</span></button>
 </div>
 
-<script src="./script.js?v=4.8.2"></script>
+<script src="./script.js?v=4.9.0"></script>
 
 </body>
 </html>

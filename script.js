@@ -13,6 +13,8 @@ document.addEventListener("DOMContentLoaded", function () {
      - 儲存 / 載入 / 重設
   ===================================================== */
   var STORAGE_KEY = "retirementCountdownPlan";
+  var HISTORY_KEY = "retirementCountdownHistory";
+  var MAX_HISTORY = 20;
 
   /* =====================================================
      GA4 互動追蹤
@@ -56,6 +58,170 @@ document.addEventListener("DOMContentLoaded", function () {
     if (wrap) wrap.classList.remove("is-dirty");
     if (status) status.textContent = "已更新試算結果";
   }
+  function getNumericText(id) {
+    var element = document.getElementById(id);
+    if (!element) return null;
+    var text = element.textContent || "";
+    var match = text.replace(/,/g, "").match(/-?\d+(?:\.\d+)?/);
+    return match ? Number(match[0]) : null;
+  }
+
+  function getCalculationHistory() {
+    try {
+      var saved = localStorage.getItem(HISTORY_KEY);
+      var history = saved ? JSON.parse(saved) : [];
+      return Array.isArray(history) ? history : [];
+    } catch (error) {
+      return [];
+    }
+  }
+
+  function saveCalculationSnapshot(snapshot) {
+    var history = getCalculationHistory();
+    history.push(snapshot);
+    if (history.length > MAX_HISTORY) history = history.slice(history.length - MAX_HISTORY);
+    try {
+      localStorage.setItem(HISTORY_KEY, JSON.stringify(history));
+    } catch (error) {
+      /* 進度紀錄只影響比較功能，不影響主要試算 */
+    }
+    return history;
+  }
+
+  function formatShortDate(timestamp) {
+    var date = new Date(timestamp);
+    if (!isFinite(date.getTime())) return "";
+    return (date.getMonth() + 1) + "/" + date.getDate();
+  }
+
+  function formatChange(value, suffix) {
+    var sign = value > 0 ? "+" : value < 0 ? "−" : "±";
+    var amount = Math.abs(Math.round(value || 0)).toLocaleString();
+    return sign + amount + (suffix || "");
+  }
+
+  function getEstimatedRetirementAgeValue() {
+    var element = document.getElementById("projectionRetirementAge");
+    if (!element) return null;
+    var text = element.textContent || "";
+    var match = text.match(/\d+(?:\.\d+)?/);
+    return match ? Number(match[0]) : null;
+  }
+
+  function renderComparison(snapshot, previous) {
+    var content = document.getElementById("comparisonContent");
+    var card = document.getElementById("comparisonCard");
+    if (!content || !card) return;
+
+    if (!previous) {
+      card.classList.remove("has-comparison");
+      content.innerHTML = '<div class="comparison-empty">這是第一次試算。之後再次試算，就能看到你的資產與退休進度變化。</div>';
+      return;
+    }
+
+    card.classList.add("has-comparison");
+    var assetChange = snapshot.totalAssets - previous.totalAssets;
+    var ageText = "—";
+    if (snapshot.retirementAge != null && previous.retirementAge != null) {
+      var ageChange = snapshot.retirementAge - previous.retirementAge;
+      ageText = ageChange === 0 ? "沒有變化" : (ageChange < 0 ? "提前 " + Math.abs(ageChange).toFixed(0) + " 年" : "延後 " + ageChange.toFixed(0) + " 年");
+    }
+
+    var min = Math.min(previous.totalAssets, snapshot.totalAssets);
+    var max = Math.max(previous.totalAssets, snapshot.totalAssets);
+    var span = Math.max(max - min, 1);
+    var y1 = 78 - ((previous.totalAssets - min) / span) * 56;
+    var y2 = 78 - ((snapshot.totalAssets - min) / span) * 56;
+    var previousLabel = formatNTD(previous.totalAssets);
+    var currentLabel = formatNTD(snapshot.totalAssets);
+
+    content.innerHTML =
+      '<div class="comparison-metrics">' +
+        '<div><span>總資產</span><strong>' + previousLabel + ' → ' + currentLabel + '</strong><small>' + formatChange(assetChange) + '</small></div>' +
+        '<div><span>預估退休年齡</span><strong>' + (previous.retirementAge != null ? previous.retirementAge.toFixed(0) + ' 歲' : '—') + ' → ' + (snapshot.retirementAge != null ? snapshot.retirementAge.toFixed(0) + ' 歲' : '尚未達成') + '</strong><small>' + ageText + '</small></div>' +
+      '</div>' +
+      '<div class="comparison-chart-wrap">' +
+        '<svg class="comparison-chart" viewBox="0 0 360 118" role="img" aria-label="上次與這次總資產比較圖">' +
+          '<line x1="38" y1="88" x2="338" y2="88" class="chart-axis"></line>' +
+          '<line x1="38" y1="18" x2="38" y2="88" class="chart-axis"></line>' +
+          '<line x1="62" y1="' + y1.toFixed(1) + '" x2="314" y2="' + y2.toFixed(1) + '" class="chart-line"></line>' +
+          '<circle cx="62" cy="' + y1.toFixed(1) + '" r="5" class="chart-dot"></circle>' +
+          '<circle cx="314" cy="' + y2.toFixed(1) + '" r="5" class="chart-dot"></circle>' +
+          '<text x="62" y="108" text-anchor="middle">上次</text>' +
+          '<text x="314" y="108" text-anchor="middle">這次</text>' +
+        '</svg>' +
+      '</div>';
+  }
+
+  function renderNextSteps(snapshot) {
+    var grid = document.getElementById("nextStepGrid");
+    if (!grid) return;
+    var steps = [
+      { key: "goal", icon: "🎯", title: "換一個退休年齡", text: "看看如果提早或延後退休，結果會怎麼變。", target: "section01" },
+      { key: "asset", icon: "💰", title: "調整每月投入", text: "改變每月新增投資，再試算一次累積速度。", target: "section04" },
+      { key: "micro", icon: "🌱", title: "試算半退休", text: "保留部分工作收入，看看資產需要補多少生活費。", target: "section01" }
+    ];
+    if (snapshot.retirementAge != null && snapshot.retirementAge <= snapshot.currentAge) {
+      steps[0].title = "看看能否再提前";
+      steps[0].text = "把退休年齡往前調，看看新的資產需求。";
+    }
+    grid.innerHTML = steps.map(function (step) {
+      return '<button type="button" class="next-step-item" data-next-step="' + step.key + '" data-target="' + step.target + '">' +
+        '<span class="next-step-icon">' + step.icon + '</span>' +
+        '<span><strong>' + step.title + '</strong><small>' + step.text + '</small></span>' +
+        '<span class="next-step-arrow">›</span>' +
+      '</button>';
+    }).join("");
+  }
+
+  function showCalculationResult() {
+    var dashboard = document.getElementById("resultDashboard");
+    if (!dashboard) return;
+
+    var data = getRetirementData();
+    var snapshot = {
+      timestamp: Date.now(),
+      totalAssets: data.currentAssets,
+      retirementTarget: data.retirementTarget,
+      retirementAge: getEstimatedRetirementAgeValue(),
+      currentAge: data.currentAge,
+      endAssets: getNumericText("age85Remaining")
+    };
+    var history = getCalculationHistory();
+    var previous = history.length ? history[history.length - 1] : null;
+
+    var ageElement = document.getElementById("dashboardRetirementAge");
+    var targetElement = document.getElementById("dashboardRetirementTarget");
+    var assetsElement = document.getElementById("dashboardCurrentAssets");
+    var endElement = document.getElementById("dashboardEndAssets");
+    var summaryElement = document.getElementById("resultDashboardSummary");
+    var updatedElement = document.getElementById("resultUpdatedAt");
+
+    if (ageElement) ageElement.textContent = snapshot.retirementAge != null ? snapshot.retirementAge.toFixed(0) + " 歲" : "尚未達成";
+    if (targetElement) targetElement.textContent = formatNTD(snapshot.retirementTarget);
+    if (assetsElement) assetsElement.textContent = formatNTD(snapshot.totalAssets);
+    if (endElement) endElement.textContent = snapshot.endAssets != null ? formatNTD(snapshot.endAssets) : "—";
+    if (summaryElement) {
+      summaryElement.textContent = snapshot.retirementAge != null
+        ? "目前預估在 " + snapshot.retirementAge.toFixed(0) + " 歲左右達成設定的退休目標。"
+        : "依目前設定，尚未在試算範圍內達成退休目標。";
+    }
+    if (updatedElement) updatedElement.textContent = "剛剛更新";
+
+    renderNextSteps(snapshot);
+    renderComparison(snapshot, previous);
+    dashboard.classList.remove("hidden");
+    dashboard.classList.add("is-visible");
+
+    trackEvent("result_view", { goal_type: data.goal, comparison_shown: previous ? "yes" : "no" });
+    if (previous) trackEvent("comparison_view", { goal_type: data.goal });
+
+    saveCalculationSnapshot(snapshot);
+    setTimeout(function () {
+      dashboard.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 30);
+  }
+
   function trackFieldInteraction(target) {
     if (!target || !target.id || trackedFields[target.id]) return;
     trackedFields[target.id] = true;
@@ -1585,13 +1751,25 @@ document.addEventListener("DOMContentLoaded", function () {
   var calculateButton = document.getElementById("calculateBtn");
   if (calculateButton) {
     calculateButton.addEventListener("click", function () {
+      trackEvent("calculation_start", { goal_type: getActiveGoal() });
       if (calculationDirty) {
         clearCalculationCache();
         updateAllRetirementCalculations();
         finishCalculation();
       }
+      trackEvent("calculation_complete", { goal_type: getActiveGoal() });
+      showCalculationResult();
     });
   }
+
+  document.addEventListener("click", function (event) {
+    var nextStep = event.target.closest(".next-step-item");
+    if (!nextStep) return;
+    trackEvent("next_step_click", { goal_type: getActiveGoal(), step: nextStep.getAttribute("data-next-step") || "unknown" });
+    var targetId = nextStep.getAttribute("data-target");
+    var target = targetId ? document.getElementById(targetId) : null;
+    if (target) target.scrollIntoView({ behavior: "smooth", block: "start" });
+  });
   /* =====================================================
      13. 儲存資料
   ===================================================== */

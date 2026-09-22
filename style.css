@@ -1534,3 +1534,269 @@ footer {
     display: none;
   }
 }
+
+
+/* v4.9.0：試算結果區、下一步、上次／這次比較 */
+.result-dashboard {
+  scroll-margin-top: 18px;
+  border: 2px solid var(--primary-light);
+}
+
+.result-dashboard.is-visible {
+  animation: resultReveal .35s ease;
+}
+
+@keyframes resultReveal {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.result-dashboard-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 20px;
+  margin-bottom: 20px;
+}
+
+.result-dashboard-kicker {
+  color: var(--primary);
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.result-dashboard-head h2 {
+  margin: 5px 0 4px;
+  font-size: 27px;
+}
+
+.result-dashboard-head p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 14px;
+}
+
+.result-updated {
+  color: var(--muted);
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.result-dashboard-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+}
+
+.dashboard-metric {
+  background: #f7f8fb;
+  border-radius: 16px;
+  padding: 17px;
+}
+
+.dashboard-metric.highlight {
+  background: var(--primary-light);
+}
+
+.dashboard-metric span,
+.comparison-metrics span {
+  display: block;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.dashboard-metric strong {
+  display: block;
+  margin-top: 7px;
+  font-size: 21px;
+}
+
+.dashboard-metric.highlight strong {
+  color: var(--primary);
+}
+
+.next-step-card,
+.comparison-card {
+  margin-top: 18px;
+  padding-top: 18px;
+  border-top: 1px solid var(--border);
+}
+
+.dashboard-section-title {
+  font-size: 17px;
+  font-weight: 800;
+}
+
+.dashboard-section-subtitle {
+  margin: 5px 0 12px;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.next-step-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+
+.next-step-item {
+  width: 100%;
+  min-height: 92px;
+  border: 1px solid var(--border);
+  background: #fff;
+  border-radius: 16px;
+  padding: 14px;
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 10px;
+  text-align: left;
+  color: var(--text);
+  transition: .18s ease;
+}
+
+.next-step-item:hover {
+  border-color: var(--primary);
+  background: var(--primary-light);
+  transform: translateY(-1px);
+}
+
+.next-step-icon {
+  font-size: 25px;
+}
+
+.next-step-item strong,
+.next-step-item small {
+  display: block;
+}
+
+.next-step-item strong {
+  font-size: 14px;
+}
+
+.next-step-item small {
+  margin-top: 4px;
+  color: var(--muted);
+  line-height: 1.45;
+}
+
+.next-step-arrow {
+  color: var(--primary);
+  font-size: 24px;
+  line-height: 1;
+}
+
+.comparison-metrics {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+}
+
+.comparison-metrics > div {
+  background: #f7f8fb;
+  border-radius: 14px;
+  padding: 14px;
+}
+
+.comparison-metrics strong {
+  display: block;
+  margin-top: 5px;
+  font-size: 15px;
+}
+
+.comparison-metrics small {
+  display: block;
+  margin-top: 4px;
+  color: #5f9f73;
+  font-weight: 700;
+}
+
+.comparison-chart-wrap {
+  margin-top: 8px;
+  padding: 3px 0 0;
+}
+
+.comparison-chart {
+  width: 100%;
+  max-height: 125px;
+  display: block;
+}
+
+.comparison-chart text {
+  fill: #8b94a3;
+  font-size: 11px;
+  font-family: inherit;
+}
+
+.chart-axis {
+  stroke: #dfe3ea;
+  stroke-width: 1;
+}
+
+.chart-line {
+  stroke: var(--primary);
+  stroke-width: 3;
+  fill: none;
+  stroke-linecap: round;
+}
+
+.chart-dot {
+  fill: var(--primary);
+}
+
+.comparison-empty {
+  background: #f7f8fb;
+  border-radius: 14px;
+  padding: 13px 14px;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.privacy-note {
+  margin: -8px 0 18px;
+  color: #7f8997;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+@media (max-width: 760px) {
+  .result-dashboard-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .next-step-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 650px) {
+  .result-dashboard-head {
+    display: block;
+  }
+
+  .result-updated {
+    display: block;
+    margin-top: 8px;
+  }
+
+  .result-dashboard-head h2 {
+    font-size: 23px;
+  }
+
+  .result-dashboard-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .dashboard-metric {
+    padding: 14px;
+  }
+
+  .dashboard-metric strong {
+    font-size: 18px;
+  }
+
+  .comparison-metrics {
+    grid-template-columns: 1fr;
+  }
+}
