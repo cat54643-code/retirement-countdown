@@ -127,29 +127,28 @@ document.addEventListener("DOMContentLoaded", function () {
       ageText = ageChange === 0 ? "沒有變化" : (ageChange < 0 ? "提前 " + Math.abs(ageChange).toFixed(0) + " 年" : "延後 " + ageChange.toFixed(0) + " 年");
     }
 
-    var min = Math.min(previous.totalAssets, snapshot.totalAssets);
-    var max = Math.max(previous.totalAssets, snapshot.totalAssets);
-    var span = Math.max(max - min, 1);
-    var y1 = 78 - ((previous.totalAssets - min) / span) * 56;
-    var y2 = 78 - ((snapshot.totalAssets - min) / span) * 56;
+    var maxAssets = Math.max(previous.totalAssets, snapshot.totalAssets, 1);
+    var previousHeight = Math.max((previous.totalAssets / maxAssets) * 100, 8);
+    var currentHeight = Math.max((snapshot.totalAssets / maxAssets) * 100, 8);
     var previousLabel = formatNTD(previous.totalAssets);
     var currentLabel = formatNTD(snapshot.totalAssets);
 
     content.innerHTML =
-      '<div class="comparison-metrics">' +
-        '<div><span>總資產</span><strong>' + previousLabel + ' → ' + currentLabel + '</strong><small>' + formatChange(assetChange) + '</small></div>' +
-        '<div><span>預估退休年齡</span><strong>' + (previous.retirementAge != null ? previous.retirementAge.toFixed(0) + ' 歲' : '—') + ' → ' + (snapshot.retirementAge != null ? snapshot.retirementAge.toFixed(0) + ' 歲' : '尚未達成') + '</strong><small>' + ageText + '</small></div>' +
+      '<div class="comparison-summary">' +
+        '<div><span>總資產</span><strong>' + formatChange(assetChange) + '</strong></div>' +
+        '<div><span>預估達成年齡</span><strong>' + ageText + '</strong></div>' +
       '</div>' +
-      '<div class="comparison-chart-wrap">' +
-        '<svg class="comparison-chart" viewBox="0 0 360 118" role="img" aria-label="上次與這次總資產比較圖">' +
-          '<line x1="38" y1="88" x2="338" y2="88" class="chart-axis"></line>' +
-          '<line x1="38" y1="18" x2="38" y2="88" class="chart-axis"></line>' +
-          '<line x1="62" y1="' + y1.toFixed(1) + '" x2="314" y2="' + y2.toFixed(1) + '" class="chart-line"></line>' +
-          '<circle cx="62" cy="' + y1.toFixed(1) + '" r="5" class="chart-dot"></circle>' +
-          '<circle cx="314" cy="' + y2.toFixed(1) + '" r="5" class="chart-dot"></circle>' +
-          '<text x="62" y="108" text-anchor="middle">上次</text>' +
-          '<text x="314" y="108" text-anchor="middle">這次</text>' +
-        '</svg>' +
+      '<div class="comparison-bars" role="img" aria-label="上次與這次總資產比較圖">' +
+        '<div class="comparison-bar-item">' +
+          '<strong>' + previousLabel + '</strong>' +
+          '<div class="comparison-bar-track"><div class="comparison-bar-fill previous" style="height:' + previousHeight.toFixed(1) + '%"></div></div>' +
+          '<span>上次</span>' +
+        '</div>' +
+        '<div class="comparison-bar-item">' +
+          '<strong>' + currentLabel + '</strong>' +
+          '<div class="comparison-bar-track"><div class="comparison-bar-fill current" style="height:' + currentHeight.toFixed(1) + '%"></div></div>' +
+          '<span>這次</span>' +
+        '</div>' +
       '</div>';
   }
 
@@ -178,12 +177,24 @@ document.addEventListener("DOMContentLoaded", function () {
     var dashboard = document.getElementById("resultDashboard");
     if (!dashboard) return;
 
+    // 結果頁只使用「本次按下試算後」重新計算的資料，避免沿用舊 DOM 數值。
     var data = getRetirementData();
+    var plannedRetirementAge = data.plannedRetirementAge;
+    var retirementBreakdown = getAccumulatedAssetBreakdownAtAge(plannedRetirementAge);
+    var projectedAtRetirement = retirementBreakdown.cash + retirementBreakdown.deposit + retirementBreakdown.investment;
+    var retirementTarget = data.retirementTarget;
+    var progress = retirementTarget > 0 ? Math.min(projectedAtRetirement / retirementTarget * 100, 100) : 0;
+    var retirementMet = projectedAtRetirement >= retirementTarget;
+    var estimatedRetirementAge = getEstimatedRetirementAgeValue();
+
     var snapshot = {
       timestamp: Date.now(),
       totalAssets: data.currentAssets,
-      retirementTarget: data.retirementTarget,
-      retirementAge: getEstimatedRetirementAgeValue(),
+      projectedAtRetirement: projectedAtRetirement,
+      retirementTarget: retirementTarget,
+      retirementAge: estimatedRetirementAge,
+      plannedRetirementAge: plannedRetirementAge,
+      retirementMet: retirementMet,
       currentAge: data.currentAge,
       endAssets: getNumericText("age85Remaining")
     };
@@ -193,18 +204,33 @@ document.addEventListener("DOMContentLoaded", function () {
     var ageElement = document.getElementById("dashboardRetirementAge");
     var targetElement = document.getElementById("dashboardRetirementTarget");
     var assetsElement = document.getElementById("dashboardCurrentAssets");
-    var endElement = document.getElementById("dashboardEndAssets");
+    var projectedElement = document.getElementById("dashboardProjectedAssets");
+    var progressElement = document.getElementById("dashboardProgressPercent");
+    var progressBar = document.getElementById("dashboardProgressBar");
     var summaryElement = document.getElementById("resultDashboardSummary");
+    var statusElement = document.getElementById("resultStatusText");
+    var statusNoteElement = document.getElementById("resultStatusNote");
     var updatedElement = document.getElementById("resultUpdatedAt");
 
-    if (ageElement) ageElement.textContent = snapshot.retirementAge != null ? snapshot.retirementAge.toFixed(0) + " 歲" : "尚未達成";
-    if (targetElement) targetElement.textContent = formatNTD(snapshot.retirementTarget);
-    if (assetsElement) assetsElement.textContent = formatNTD(snapshot.totalAssets);
-    if (endElement) endElement.textContent = snapshot.endAssets != null ? formatNTD(snapshot.endAssets) : "—";
+    if (ageElement) ageElement.textContent = estimatedRetirementAge != null ? estimatedRetirementAge.toFixed(0) + " 歲" : "尚未達成";
+    if (targetElement) targetElement.textContent = formatNTD(retirementTarget);
+    if (assetsElement) assetsElement.textContent = formatNTD(data.currentAssets);
+    if (projectedElement) projectedElement.textContent = formatNTD(projectedAtRetirement);
+    if (progressElement) progressElement.textContent = progress.toFixed(0) + "%";
+    if (progressBar) progressBar.style.width = progress + "%";
+
+    if (statusElement) {
+      statusElement.textContent = retirementMet
+        ? plannedRetirementAge + " 歲時，預估可達成退休目標 🎉"
+        : plannedRetirementAge + " 歲時，預估仍差 " + formatNTD(Math.max(retirementTarget - projectedAtRetirement, 0));
+    }
+    if (statusNoteElement) {
+      statusNoteElement.textContent = "目前總資產 " + formatNTD(data.currentAssets) + " → 退休時預估 " + formatNTD(projectedAtRetirement) + "；退休目標 " + formatNTD(retirementTarget) + "。";
+    }
     if (summaryElement) {
-      summaryElement.textContent = snapshot.retirementAge != null
-        ? "目前預估在 " + snapshot.retirementAge.toFixed(0) + " 歲左右達成設定的退休目標。"
-        : "依目前設定，尚未在試算範圍內達成退休目標。";
+      summaryElement.textContent = retirementMet
+        ? "以目前的資產、投入、報酬率與通膨設定，退休時的預估資產已高於目標。"
+        : "以目前設定，退休時的預估資產尚未達到目標；你可以從下方調整條件再試算。";
     }
     if (updatedElement) updatedElement.textContent = "剛剛更新";
 
@@ -1277,7 +1303,7 @@ document.addEventListener("DOMContentLoaded", function () {
     progress = Math.max(0, Math.min(progress, 100));
     if (progressPercentElement) progressPercentElement.textContent = progress.toFixed(1) + "%";
     if (progressBar) progressBar.style.width = progress + "%";
-    if (progressCurrent) progressCurrent.textContent = formatNTD(data.currentAssets);
+    if (progressCurrent) progressCurrent.textContent = formatNTD(projectedAtRetirement);
     if (progressTarget) progressTarget.textContent = formatNTD(data.retirementTarget);
     if (ageElement) ageElement.textContent = data.plannedRetirementAge > 0 ? data.plannedRetirementAge + " 歲" : "尚未設定";
   }
@@ -1752,11 +1778,9 @@ document.addEventListener("DOMContentLoaded", function () {
   if (calculateButton) {
     calculateButton.addEventListener("click", function () {
       trackEvent("calculation_start", { goal_type: getActiveGoal() });
-      if (calculationDirty) {
-        clearCalculationCache();
-        updateAllRetirementCalculations();
-        finishCalculation();
-      }
+      clearCalculationCache();
+      updateAllRetirementCalculations();
+      finishCalculation();
       trackEvent("calculation_complete", { goal_type: getActiveGoal() });
       showCalculationResult();
     });

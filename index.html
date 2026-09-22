@@ -67,33 +67,38 @@
       <div>
         <span class="result-dashboard-kicker">📊 你的試算結果</span>
         <h2 id="resultDashboardTitle">你的退休進度</h2>
-        <p id="resultDashboardSummary">完成試算後，這裡會整理目前結果與下一步。</p>
+        <p id="resultDashboardSummary">完成試算後，這裡會整理目前資產、退休時預估資產與目標。</p>
       </div>
       <span class="result-updated" id="resultUpdatedAt"></span>
     </div>
 
-    <div class="result-dashboard-grid">
-      <div class="dashboard-metric">
-        <span>預估退休年齡</span>
-        <strong id="dashboardRetirementAge">—</strong>
+    <div class="result-status-card" id="resultStatusCard">
+      <div class="result-status-main">
+        <span id="resultStatusLabel">依目前設定</span>
+        <strong id="resultStatusText">—</strong>
       </div>
-      <div class="dashboard-metric highlight">
-        <span>退休時最低所需資產</span>
-        <strong id="dashboardRetirementTarget">—</strong>
+      <div class="result-status-note" id="resultStatusNote">—</div>
+    </div>
+
+    <div class="result-progress-chart">
+      <div class="result-chart-head">
+        <span>資產進度</span>
+        <strong id="dashboardProgressPercent">—</strong>
       </div>
-      <div class="dashboard-metric">
-        <span>目前總資產</span>
-        <strong id="dashboardCurrentAssets">—</strong>
+      <div class="result-chart-track">
+        <div class="result-chart-current" id="dashboardProgressBar"></div>
+        <div class="result-chart-target" aria-hidden="true"></div>
       </div>
-      <div class="dashboard-metric">
-        <span>規劃終點剩餘資產</span>
-        <strong id="dashboardEndAssets">—</strong>
+      <div class="result-chart-labels">
+        <span>現在 <strong id="dashboardCurrentAssets">—</strong></span>
+        <span>退休時預估 <strong id="dashboardProjectedAssets">—</strong></span>
+        <span>目標 <strong id="dashboardRetirementTarget">—</strong></span>
       </div>
     </div>
 
     <div class="next-step-card">
       <div class="dashboard-section-title">🧭 你的下一步</div>
-      <p class="dashboard-section-subtitle">如果你想看看不同路徑，可以直接改一個條件，再試算一次。</p>
+      <p class="dashboard-section-subtitle">想看看不同路徑，就改一個條件，再試算一次。</p>
       <div class="next-step-grid" id="nextStepGrid"></div>
     </div>
 
