@@ -107,19 +107,16 @@
       <div id="comparisonContent"></div>
     </div>
 
-    <div class="result-projection-card" id="resultProjectionCard">
-      <div class="result-projection-head">
-        <div>
-          <div class="dashboard-section-title">05 年齡資產軌跡</div>
-          <p class="dashboard-section-subtitle">試算完成後，看看不同年齡的資產變化與退休準備。</p>
-        </div>
-        <label class="projection-end-age-control">
-          <span>推估至</span>
+    <div class="projection-result result-projection-card">
+      <div class="dashboard-section-title">📊 年齡資產軌跡</div>
+      <div class="form-grid projection-form">
+        <label>
+          <span>推估至幾歲？</span>
           <input type="number" id="projectionEndAge" value="65" min="33" max="85">
           <small>歲</small>
+          <em class="field-hint">只控制年齡軌跡顯示到幾歲，不代表持續投資到這個年齡</em>
         </label>
       </div>
-
       <div class="projection-table">
         <div class="projection-row header">
           <span>年齡</span>
@@ -383,7 +380,7 @@
     <div class="asset-saving-plan">
       <label>
         <span>退休前每月新增投資</span>
-        <input type="number" id="monthlyInvestment" value="20000" min="0" step="1000">
+        <input type="number" id="monthlyInvestment" value="0" min="0" step="1000">
         <small>NT$ / 月</small>
       </label>
       <em>自動持續投入至設定的退休／FIRE年齡；退休後預設停止。</em>
@@ -549,14 +546,18 @@
       <div class="pension-note">💡 勞退新制年滿 60 歲可請領；勞保老年年金自 2026 年起法定請領年齡為 65 歲，一般情況可提前最多 5 年請領，但每提前 1 年減給 4%。以上為規劃用估算值，實際金額應以勞保局個人試算結果為準。</div>
     </div>
 
+    <div class="calculation-note">
+      <strong>📌 這一區主要看兩件事</strong>
+      <p>退休後通膨會把生活費推高多少，以及勞退／勞保未來能補上多少生活費。</p>
+    </div>
   </section>
 
 
-  <!-- 06 資料管理 -->
-  <section class="card" id="section06">
+  <!-- 05 資料管理 -->
+  <section class="card" id="section05">
 
     <div class="section-title">
-      <div class="section-number">06</div>
+      <div class="section-number">05</div>
 
       <div>
         <h2>資料管理</h2>
@@ -585,18 +586,18 @@
 
 
   <footer>
-    夠用就好 · UI/UX 測試版
+    夠用就好試算結果僅供理財規畫參考，實際退休金給付制度仍依主管機關核定為準。
   </footer>
 
 </div>
 
-<!-- 浮動試算按鈕：輸入期間不重跑完整現金流，點擊後一次更新 04＋05＋勞退／勞保。 -->
+<!-- 浮動試算按鈕：輸入期間不重跑完整現金流，點擊後一次更新退休試算、年齡資產軌跡與勞退／勞保。 -->
 <div class="calculate-float-wrap">
   <span id="calculationStatus" class="calculation-status" aria-live="polite">資料已變更，點擊「試算」更新結果</span>
   <button type="button" id="calculateBtn" class="calculate-float-btn"><img src="./calculator-cat-icon.png" alt="" class="calculate-float-icon"><span>試算</span></button>
 </div>
 
-<script src="./script.js?v=4.9.0"></script>
+<script src="./script.js?v=4.10.2"></script>
 
 </body>
 </html>

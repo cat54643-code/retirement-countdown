@@ -27,7 +27,54 @@ document.addEventListener("DOMContentLoaded", function () {
     }
   }
 
+  function trackVisitType() {
+    var visitType = "new";
+    try {
+      visitType = localStorage.getItem(analyticsVisitStorageKey) ? "return" : "new";
+      localStorage.setItem(analyticsVisitStorageKey, String(Date.now()));
+    } catch (error) {
+      visitType = "unknown";
+    }
+    trackEvent("site_visit", { visit_type: visitType });
+  }
+
+  function setupScrollDepthTracking() {
+    var marks = [25, 50, 75, 90];
+    function checkDepth() {
+      var doc = document.documentElement;
+      var maxScroll = Math.max(doc.scrollHeight - window.innerHeight, 1);
+      var percent = Math.round((window.scrollY / maxScroll) * 100);
+      marks.forEach(function(mark) {
+        if (percent >= mark && !analyticsScrollMarks[mark]) {
+          analyticsScrollMarks[mark] = true;
+          trackEvent("scroll_depth", { percent_scrolled: mark });
+        }
+      });
+    }
+    window.addEventListener("scroll", checkDepth, { passive: true });
+    window.addEventListener("resize", checkDepth);
+    checkDepth();
+  }
+
+  function setupExitTracking() {
+    function handleExit() {
+      if (!analyticsFormStarted || analyticsResultShown) return;
+      trackEvent("calculation_abandon", {
+        goal_type: getActiveGoal(),
+        reason: "left_before_result"
+      });
+      analyticsFormStarted = false;
+    }
+    document.addEventListener("visibilitychange", function() {
+      if (document.visibilityState === "hidden") handleExit();
+    });
+  }
+
   var trackedFields = {};
+  var analyticsFormStarted = false;
+  var analyticsResultShown = false;
+  var analyticsScrollMarks = {};
+  var analyticsVisitStorageKey = "retirementCountdownAnalyticsVisit";
   // 重計算採手動觸發：輸入時只標記資料變更，不啟動昂貴的退休現金流試算。
   var calculationDirty = true;
   var cashFlowTargetCache = {};
@@ -35,6 +82,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
   function markCalculationDirty() {
     calculationDirty = true;
+    analyticsResultShown = false;
     var button = document.getElementById("calculateBtn");
     var status = document.getElementById("calculationStatus");
     var wrap = document.querySelector(".calculate-float-wrap");
@@ -153,7 +201,7 @@ document.addEventListener("DOMContentLoaded", function () {
     if (!grid) return;
     var steps = [
       { key: "goal", icon: "🎯", title: "換一個退休年齡", text: "看看如果提早或延後退休，結果會怎麼變。", target: "section01" },
-      { key: "asset", icon: "💰", title: "調整每月投入", text: "改變每月新增投資，再試算一次累積速度。", target: "section04" },
+      { key: "asset", icon: "💰", title: "調整每月投入", text: "改變每月新增投資，再試算一次累積速度。", target: "section02" },
       { key: "micro", icon: "🌱", title: "試算半退休", text: "保留部分工作收入，看看資產需要補多少生活費。", target: "section01" }
     ];
     if (snapshot.retirementAge != null && snapshot.retirementAge <= snapshot.currentAge) {
@@ -234,6 +282,8 @@ document.addEventListener("DOMContentLoaded", function () {
     renderComparison(snapshot, previous);
     dashboard.classList.remove("hidden");
     dashboard.classList.add("is-visible");
+    analyticsResultShown = true;
+    analyticsFormStarted = false;
 
     trackEvent("result_view", { goal_type: data.goal, comparison_shown: previous ? "yes" : "no" });
     if (previous) trackEvent("comparison_view", { goal_type: data.goal });
@@ -245,7 +295,12 @@ document.addEventListener("DOMContentLoaded", function () {
   }
 
   function trackFieldInteraction(target) {
-    if (!target || !target.id || trackedFields[target.id]) return;
+    if (!target || !target.id) return;
+    if (!analyticsFormStarted) {
+      analyticsFormStarted = true;
+      trackEvent("form_start", { field_id: target.id });
+    }
+    if (trackedFields[target.id]) return;
     trackedFields[target.id] = true;
     trackEvent("field_interaction", { field_id: target.id });
   }
@@ -1822,6 +1877,9 @@ document.addEventListener("DOMContentLoaded", function () {
   document.addEventListener("input", function (event) {
     var target = event.target;
     trackFieldInteraction(target);
+    if (target.id === "monthlyInvestment") {
+      target.dataset.userSet = "yes";
+    }
     if (
       target.closest("#cashList") ||
       target.closest("#investmentList") ||
@@ -1887,12 +1945,26 @@ document.addEventListener("DOMContentLoaded", function () {
   var calculateButton = document.getElementById("calculateBtn");
   if (calculateButton) {
     calculateButton.addEventListener("click", function () {
-      trackEvent("calculation_start", { goal_type: getActiveGoal() });
+      var startedAt = Date.now();
+      var goalType = getActiveGoal();
+      var assetMode = getAssetInputMode();
+      trackEvent("asset_input_complete", { asset_input_mode: assetMode });
+      trackEvent("calculation_start", { goal_type: goalType, asset_input_mode: assetMode });
       clearCalculationCache();
-      updateAllRetirementCalculations();
-      finishCalculation();
-      trackEvent("calculation_complete", { goal_type: getActiveGoal() });
-      showCalculationResult();
+      try {
+        updateAllRetirementCalculations();
+        finishCalculation();
+        trackEvent("calculation_complete", {
+          goal_type: goalType,
+          asset_input_mode: assetMode,
+          calculation_duration_ms: Date.now() - startedAt
+        });
+        showCalculationResult();
+      } catch (error) {
+        finishCalculation();
+        trackEvent("calculation_error", { goal_type: goalType, error_stage: "calculation" });
+        throw error;
+      }
     });
   }
 
@@ -1955,6 +2027,7 @@ document.addEventListener("DOMContentLoaded", function () {
     data.strategyCashReturn = getNumber("strategyCashReturn");
     data.strategyInvestmentReturn = getNumber("strategyInvestmentReturn");
     data.strategyDepositReturn = getNumber("strategyDepositReturn");
+    data.monthlyInvestmentUserSet = document.getElementById("monthlyInvestment") ? document.getElementById("monthlyInvestment").dataset.userSet === "yes" : false;
     data.goal = getActiveGoal();
     data.inheritancePlan = getActiveInheritancePlan();
     data.retirementLifestyle = getActiveRetirementLifestyle();
@@ -2052,6 +2125,10 @@ document.addEventListener("DOMContentLoaded", function () {
     } catch (error) {
       return;
     }
+    // v4.10.2：舊版的 20,000 元只是系統預設值，沒有明確使用者設定標記時不再沿用。
+    if (data.monthlyInvestment === 20000 && data.monthlyInvestmentUserSet !== true) {
+      data.monthlyInvestment = 0;
+    }
     if (data.annualReturn !== undefined) {
       if (data.cashAnnualReturn === undefined) data.cashAnnualReturn = data.annualReturn;
       if (data.depositAnnualReturn === undefined) data.depositAnnualReturn = data.annualReturn;
@@ -2088,6 +2165,10 @@ document.addEventListener("DOMContentLoaded", function () {
       var element = document.getElementById(id);
       if (element && data[id] !== undefined) element.value = data[id];
     });
+    var monthlyInvestmentElement = document.getElementById("monthlyInvestment");
+    if (monthlyInvestmentElement) {
+      monthlyInvestmentElement.dataset.userSet = data.monthlyInvestmentUserSet === true ? "yes" : "no";
+    }
     if (data.cashAnnualReturn !== undefined) {
       var cashReturn = document.getElementById("cashAnnualReturn");
       if (cashReturn) cashReturn.value = data.cashAnnualReturn;
