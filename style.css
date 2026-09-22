@@ -1539,7 +1539,9 @@ footer {
 /* v4.9.1：精簡試算結果、退休時資產進度、上次／這次比較 */
 .result-dashboard {
   scroll-margin-top: 18px;
-  border: 2px solid var(--primary-light);
+  background: #fbfcff;
+  border: 3px solid #dce3ff;
+  box-shadow: 0 10px 32px rgba(74, 91, 150, 0.10);
 }
 
 .result-dashboard.is-visible {
@@ -1583,7 +1585,8 @@ footer {
 }
 
 .result-status-card {
-  background: var(--primary-light);
+  background: #f1f4ff;
+  border: 2px solid #d7dfff;
   border-radius: 18px;
   padding: 18px 20px;
 }
@@ -1795,6 +1798,39 @@ footer {
   line-height: 1.5;
 }
 
+.result-projection-card {
+  margin-top: 20px;
+  padding-top: 20px;
+  border-top: 2px solid #e3e7f2;
+}
+.result-projection-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+  margin-bottom: 14px;
+}
+.projection-end-age-control {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+  color: var(--muted);
+  font-size: 13px;
+}
+.projection-end-age-control input {
+  width: 74px;
+  padding: 8px 9px;
+  text-align: right;
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  font-weight: 700;
+}
+.projection-end-age-control small {
+  font-size: 12px;
+}
+
 .privacy-note {
   margin: -8px 0 18px;
   color: #7f8997;
@@ -1809,6 +1845,13 @@ footer {
 @media (max-width: 650px) {
   .result-dashboard-head { display: block; }
   .result-updated { display: block; margin-top: 8px; }
+  .result-projection-head {
+    flex-direction: column;
+    gap: 10px;
+  }
+  .projection-end-age-control {
+    align-self: flex-start;
+  }
   .result-dashboard-head h2 { font-size: 23px; }
   .result-status-main strong { font-size: 19px; }
   .result-chart-labels { grid-template-columns: 1fr; gap: 3px; }
@@ -1879,7 +1922,7 @@ footer {
 .strategy-asset-head strong { font-size: 17px; }
 .strategy-amount-input { display: flex; align-items: center; gap: 5px; }
 .strategy-amount-input input {
-  width: 135px;
+  width: 170px;
   text-align: right;
   font-weight: 800;
   font-size: 16px;
@@ -1928,7 +1971,7 @@ footer {
 @media (max-width: 650px) {
   .asset-mode-switch { grid-template-columns: 1fr; }
   .strategy-asset-head { align-items: flex-start; }
-  .strategy-amount-input input { width: 120px; }
+  .strategy-amount-input input { width: 165px; }
   .asset-group-header-detail { flex-direction: column; }
   .asset-group-meta { width: 100%; justify-content: space-between; align-items: center; }
   .asset-saving-plan label { align-items: flex-start; flex-direction: column; gap: 6px; }
