@@ -1554,7 +1554,9 @@ footer {
 /* v4.9.1：精簡試算結果、退休時資產進度、上次／這次比較 */
 .result-dashboard {
   scroll-margin-top: 18px;
-  border: 2px solid var(--primary-light);
+  background: #fbfcff;
+  border: 2px solid #cfd8ff;
+  box-shadow: 0 10px 32px rgba(99, 124, 242, 0.12);
 }
 
 .result-dashboard.is-visible {
