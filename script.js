@@ -23,7 +23,7 @@ document.addEventListener("DOMContentLoaded", function () {
   ===================================================== */
   function trackEvent(eventName, params) {
     if (typeof window.gtag === "function") {
-      window.gtag("event", eventName, params || {});
+      window.gtag("event", eventName, mergeAnalyticsParams(params || {}));
     }
   }
 
@@ -35,7 +35,16 @@ document.addEventListener("DOMContentLoaded", function () {
     } catch (error) {
       visitType = "unknown";
     }
-    trackEvent("site_visit", { visit_type: visitType });
+    trackEvent("site_visit", {
+      visit_type: visitType,
+      landing_path: window.location.pathname
+    });
+    if (Object.keys(analyticsCampaign).some(function(key) { return analyticsCampaign[key]; })) {
+      trackEvent("campaign_context", {
+        landing_path: window.location.pathname,
+        visit_type: visitType
+      });
+    }
   }
 
   function setupScrollDepthTracking() {
@@ -61,12 +70,21 @@ document.addEventListener("DOMContentLoaded", function () {
       if (!analyticsFormStarted || analyticsResultShown) return;
       trackEvent("calculation_abandon", {
         goal_type: getActiveGoal(),
-        reason: "left_before_result"
+        reason: "left_before_result",
+        last_field_id: analyticsLastFieldId || "unknown",
+        last_section: analyticsLastSection || "unknown",
+        time_from_form_start_ms: analyticsFormStartedAt ? Date.now() - analyticsFormStartedAt : 0
       });
       analyticsFormStarted = false;
+      analyticsFormStartedAt = null;
     }
     document.addEventListener("visibilitychange", function() {
-      if (document.visibilityState === "hidden") handleExit();
+      if (document.visibilityState === "hidden") {
+        clearTimeout(analyticsHiddenTimer);
+        analyticsHiddenTimer = setTimeout(handleExit, 8000);
+      } else {
+        clearTimeout(analyticsHiddenTimer);
+      }
     });
   }
 
@@ -75,6 +93,56 @@ document.addEventListener("DOMContentLoaded", function () {
   var analyticsResultShown = false;
   var analyticsScrollMarks = {};
   var analyticsVisitStorageKey = "retirementCountdownAnalyticsVisit";
+  var analyticsFormStartedAt = null;
+  var analyticsLastFieldId = null;
+  var analyticsLastSection = null;
+  var analyticsHiddenTimer = null;
+  var analyticsSessionCalculationCount = 0;
+  var analyticsCampaign = {};
+
+  function getAnalyticsCampaignContext() {
+    var params = {};
+    try {
+      var url = new URL(window.location.href);
+      var source = (url.searchParams.get("utm_source") || "").trim();
+      var medium = (url.searchParams.get("utm_medium") || "").trim();
+      var campaign = (url.searchParams.get("utm_campaign") || "").trim();
+      var content = (url.searchParams.get("utm_content") || "").trim();
+      var term = (url.searchParams.get("utm_term") || "").trim();
+      var stored = sessionStorage.getItem("retirementCountdownCampaign");
+      if (!source && !medium && !campaign && stored) {
+        try { params = JSON.parse(stored) || {}; } catch (error) { params = {}; }
+      } else {
+        params = { source: source, medium: medium, campaign: campaign, content: content, term: term };
+        if (source || medium || campaign || content || term) {
+          sessionStorage.setItem("retirementCountdownCampaign", JSON.stringify(params));
+        }
+      }
+    } catch (error) {
+      params = {};
+    }
+    return params;
+  }
+
+  function getCampaignEventParams() {
+    var params = {};
+    if (analyticsCampaign.source) params.campaign_source = analyticsCampaign.source;
+    if (analyticsCampaign.medium) params.campaign_medium = analyticsCampaign.medium;
+    if (analyticsCampaign.campaign) params.campaign_name = analyticsCampaign.campaign;
+    if (analyticsCampaign.content) params.campaign_content = analyticsCampaign.content;
+    if (analyticsCampaign.term) params.campaign_term = analyticsCampaign.term;
+    return params;
+  }
+
+  function mergeAnalyticsParams(base) {
+    var result = {};
+    Object.keys(base || {}).forEach(function(key) { result[key] = base[key]; });
+    var campaignParams = getCampaignEventParams();
+    Object.keys(campaignParams).forEach(function(key) { result[key] = campaignParams[key]; });
+    return result;
+  }
+
+  analyticsCampaign = getAnalyticsCampaignContext();
   // 重計算採手動觸發：輸入時只標記資料變更，不啟動昂貴的退休現金流試算。
   var calculationDirty = true;
   var cashFlowTargetCache = {};
@@ -231,6 +299,9 @@ document.addEventListener("DOMContentLoaded", function () {
     var retirementMet = projectedAtRetirement >= retirementTarget;
     var estimatedRetirementAge = getEstimatedRetirementAgeValue();
 
+    analyticsSessionCalculationCount += 1;
+    var calculationDuration = analyticsFormStartedAt ? Date.now() - analyticsFormStartedAt : 0;
+
     var snapshot = {
       timestamp: Date.now(),
       totalAssets: data.currentAssets,
@@ -285,7 +356,11 @@ document.addEventListener("DOMContentLoaded", function () {
     analyticsResultShown = true;
     analyticsFormStarted = false;
 
-    trackEvent("result_view", { goal_type: data.goal, comparison_shown: previous ? "yes" : "no" });
+    trackEvent("result_view", {
+      goal_type: data.goal,
+      comparison_shown: previous ? "yes" : "no",
+      calculation_index: analyticsSessionCalculationCount
+    });
     if (previous) trackEvent("comparison_view", { goal_type: data.goal });
 
     saveCalculationSnapshot(snapshot);
@@ -296,13 +371,18 @@ document.addEventListener("DOMContentLoaded", function () {
 
   function trackFieldInteraction(target) {
     if (!target || !target.id) return;
+    analyticsLastFieldId = target.id;
+    var parentSection = target.closest(".card");
+    var heading = parentSection ? parentSection.querySelector("h2") : null;
+    if (heading) analyticsLastSection = heading.textContent.trim();
     if (!analyticsFormStarted) {
       analyticsFormStarted = true;
-      trackEvent("form_start", { field_id: target.id });
+      analyticsFormStartedAt = Date.now();
+      trackEvent("form_start", { field_id: target.id, section_name: analyticsLastSection || "unknown" });
     }
     if (trackedFields[target.id]) return;
     trackedFields[target.id] = true;
-    trackEvent("field_interaction", { field_id: target.id });
+    trackEvent("field_interaction", { field_id: target.id, section_name: analyticsLastSection || "unknown" });
   }
 
   function setupSectionTracking() {
@@ -316,6 +396,7 @@ document.addEventListener("DOMContentLoaded", function () {
         var sectionName = heading ? heading.textContent.trim() : "unknown";
         if (trackedSections[sectionName]) return;
         trackedSections[sectionName] = true;
+        analyticsLastSection = sectionName;
         trackEvent("section_view", { section_name: sectionName });
       });
     }, { threshold: [0.5] });
@@ -1948,8 +2029,9 @@ document.addEventListener("DOMContentLoaded", function () {
       var startedAt = Date.now();
       var goalType = getActiveGoal();
       var assetMode = getAssetInputMode();
-      trackEvent("asset_input_complete", { asset_input_mode: assetMode });
-      trackEvent("calculation_start", { goal_type: goalType, asset_input_mode: assetMode });
+      var nextCalculationIndex = analyticsSessionCalculationCount + 1;
+      trackEvent("asset_input_complete", { asset_input_mode: assetMode, calculation_index: nextCalculationIndex });
+      trackEvent("calculation_start", { goal_type: goalType, asset_input_mode: assetMode, calculation_index: nextCalculationIndex });
       clearCalculationCache();
       try {
         updateAllRetirementCalculations();
@@ -1957,7 +2039,10 @@ document.addEventListener("DOMContentLoaded", function () {
         trackEvent("calculation_complete", {
           goal_type: goalType,
           asset_input_mode: assetMode,
-          calculation_duration_ms: Date.now() - startedAt
+          calculation_duration_ms: Date.now() - startedAt,
+          form_duration_ms: analyticsFormStartedAt ? Date.now() - analyticsFormStartedAt : 0,
+          last_section: analyticsLastSection || "unknown",
+          calculation_index: analyticsSessionCalculationCount + 1
         });
         showCalculationResult();
       } catch (error) {
@@ -2261,6 +2346,9 @@ document.addEventListener("DOMContentLoaded", function () {
       location.reload();
     });
   }
+  trackVisitType();
+  setupScrollDepthTracking();
+  setupExitTracking();
   setupSectionTracking();
 
   /* =====================================================
