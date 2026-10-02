@@ -288,7 +288,7 @@
             <label class="strategy-amount-input"><input type="number" id="strategyCashAmount" min="0" max="50000000" step="10000"><span>元</span></label>
           </div>
           <input class="strategy-range" id="strategyCashRange" type="range" min="0" max="50000000" step="10000" value="0" aria-label="現金金額">
-          <label class="strategy-return"><span>年報酬率</span><input type="number" id="strategyCashReturn" min="-10" max="20" step="0.1"><span>%</span><small class="return-hint">💡 高利活儲可參考目前銀行方案利率</small></label>
+          <div class="strategy-return-wrap"><label class="strategy-return"><span>年報酬率</span><input type="number" id="strategyCashReturn" min="-10" max="20" step="0.1"><span>%</span></label><div class="return-reference-note"><strong>💡 僅供參考</strong><span>高利活儲：約 1.4～2%</span></div></div>
         </div>
 
         <div class="strategy-asset-card">
@@ -297,7 +297,7 @@
             <label class="strategy-amount-input"><input type="number" id="strategyInvestmentAmount" min="0" max="50000000" step="10000"><span>元</span></label>
           </div>
           <input class="strategy-range" id="strategyInvestmentRange" type="range" min="0" max="50000000" step="10000" value="0" aria-label="投資金額">
-          <label class="strategy-return"><span>年報酬率</span><input type="number" id="strategyInvestmentReturn" min="-20" max="30" step="0.1"><span>%</span><small class="return-hint">💡 0050／006208 可參考長期歷史年化報酬，實際會波動</small></label>
+          <div class="strategy-return-wrap"><label class="strategy-return"><span>年報酬率</span><input type="number" id="strategyInvestmentReturn" min="-20" max="30" step="0.1"><span>%</span></label><div class="return-reference-note"><strong>💡 僅供參考</strong><span>0050／006208：年化報酬約 9%～11%，實際會波動</span></div></div>
         </div>
 
         <div class="strategy-asset-card">
@@ -306,7 +306,7 @@
             <label class="strategy-amount-input"><input type="number" id="strategyDepositAmount" min="0" max="50000000" step="10000"><span>元</span></label>
           </div>
           <input class="strategy-range" id="strategyDepositRange" type="range" min="0" max="50000000" step="10000" value="0" aria-label="定存金額">
-          <label class="strategy-return"><span>年報酬率</span><input type="number" id="strategyDepositReturn" min="-10" max="20" step="0.1"><span>%</span><small class="return-hint">💡 台幣定存可參考目前銀行牌告利率</small></label>
+          <div class="strategy-return-wrap"><label class="strategy-return"><span>年報酬率</span><input type="number" id="strategyDepositReturn" min="-10" max="20" step="0.1"><span>%</span></label><div class="return-reference-note"><strong>💡 僅供參考</strong><span>台幣定存：約 1.4%</span></div></div>
         </div>
       </div>
     </div>
@@ -327,7 +327,7 @@
           </div>
           <div class="asset-group-meta">
             <div class="asset-group-total" id="cashTotal">NT$ 0</div>
-            <label class="group-return"><span>年報酬率</span><input type="number" id="cashAnnualReturn" min="-10" max="20" step="0.1"><span>%</span><small class="return-hint">💡 高利活儲可參考目前銀行方案利率</small></label>
+            <div class="group-return-wrap"><label class="group-return"><span>年報酬率</span><input type="number" id="cashAnnualReturn" min="-10" max="20" step="0.1"><span>%</span></label><div class="return-reference-note"><strong>💡 僅供參考</strong><span>高利活儲：約 1.4～2%</span></div></div>
           </div>
         </div>
         <div id="cashList"></div>
@@ -344,7 +344,7 @@
           </div>
           <div class="asset-group-meta">
             <div class="asset-group-total" id="investmentTotal">NT$ 0</div>
-            <label class="group-return"><span>年報酬率</span><input type="number" id="investmentAnnualReturn" min="-20" max="30" step="0.1"><span>%</span><small class="return-hint">💡 0050／006208 可參考長期歷史年化報酬，實際會波動</small></label>
+            <div class="group-return-wrap"><label class="group-return"><span>年報酬率</span><input type="number" id="investmentAnnualReturn" min="-20" max="30" step="0.1"><span>%</span></label><div class="return-reference-note"><strong>💡 僅供參考</strong><span>0050／006208：年化報酬約 9%～11%，實際會波動</span></div></div>
           </div>
         </div>
         <div id="investmentList"></div>
@@ -361,7 +361,7 @@
           </div>
           <div class="asset-group-meta">
             <div class="asset-group-total" id="depositTotal">NT$ 0</div>
-            <label class="group-return"><span>年報酬率</span><input type="number" id="depositAnnualReturn" min="-10" max="20" step="0.1"><span>%</span><small class="return-hint">💡 台幣定存可參考目前銀行牌告利率</small></label>
+            <div class="group-return-wrap"><label class="group-return"><span>年報酬率</span><input type="number" id="depositAnnualReturn" min="-10" max="20" step="0.1"><span>%</span></label><div class="return-reference-note"><strong>💡 僅供參考</strong><span>台幣定存：約 1.4%</span></div></div>
           </div>
         </div>
         <div id="depositList"></div>

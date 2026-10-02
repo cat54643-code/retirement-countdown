@@ -2167,3 +2167,87 @@ footer {
     min-width: 0;
   }
 }
+
+/* v4.11.10：報酬率參考值改為獨立提示區塊，避免手機版與輸入欄位重疊 */
+.strategy-return-wrap,
+.group-return-wrap {
+  width: 100%;
+  min-width: 0;
+}
+
+.strategy-return-wrap .strategy-return,
+.group-return-wrap .group-return {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  min-width: 0;
+  margin: 0;
+}
+
+.strategy-return-wrap .strategy-return > span:first-child,
+.group-return-wrap .group-return > span:first-child {
+  min-width: 0;
+}
+
+.strategy-return-wrap .strategy-return input,
+.group-return-wrap .group-return input {
+  box-sizing: border-box;
+}
+
+.return-reference-note {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-top: 8px;
+  padding: 9px 11px;
+  border-radius: 12px;
+  background: #faf9f3;
+  color: #77735e;
+  font-size: 12px;
+  line-height: 1.5;
+  font-weight: 400;
+  box-sizing: border-box;
+  width: 100%;
+}
+
+.return-reference-note strong {
+  color: #6f6b58;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.return-reference-note span {
+  color: #77735e;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+/* 詳細填寫模式：讓參考值與報酬率欄位完整分行 */
+.group-return-wrap {
+  min-width: 180px;
+}
+
+@media (max-width: 650px) {
+  .strategy-return-wrap .strategy-return,
+  .group-return-wrap .group-return {
+    grid-template-columns: minmax(0, 1fr) 72px auto;
+    gap: 6px;
+  }
+
+  .strategy-return-wrap .strategy-return input {
+    width: 72px;
+  }
+
+  .group-return-wrap {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .return-reference-note {
+    margin-top: 8px;
+    padding: 9px 11px;
+    font-size: 12px;
+  }
+}
