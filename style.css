@@ -1927,6 +1927,22 @@ footer {
 }
 
 @media (max-width: 650px) {
+  .strategy-return {
+    grid-template-columns: auto 72px auto;
+    justify-content: end;
+  }
+  .strategy-return .return-hint {
+    justify-self: start;
+    width: 100%;
+  }
+  .group-return {
+    width: 100%;
+    grid-template-columns: auto 65px auto;
+  }
+  .group-return .return-hint {
+    width: 100%;
+  }
+
   .asset-mode-switch { grid-template-columns: 1fr; }
   .strategy-asset-head { align-items: flex-start; }
   .strategy-amount-input input { width: 180px; max-width: 100%; }
@@ -2045,22 +2061,30 @@ footer {
 }
 
 /* v4.11.7：報酬率提示與下一步精準導向 */
-.strategy-return,
+.strategy-return {
+  display: grid;
+  grid-template-columns: auto 72px auto;
+  align-items: center;
+  justify-content: end;
+  gap: 6px;
+  width: 100%;
+}
 .group-return {
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: auto 65px auto;
+  align-items: center;
+  gap: 5px;
+  white-space: normal;
 }
 .return-hint {
-  flex-basis: 100%;
+  grid-column: 1 / -1;
   display: block;
-  margin-top: 2px;
+  margin-top: 1px;
   color: #8b94a3;
   font-size: 11px;
   line-height: 1.45;
   font-weight: 400;
   white-space: normal;
-}
-.group-return .return-hint {
-  flex-basis: 100%;
 }
 .next-step-focus {
   outline: 3px solid rgba(99,124,242,0.28);
