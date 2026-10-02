@@ -1565,12 +1565,12 @@ document.addEventListener("DOMContentLoaded", function () {
     var projectionResult = document.querySelector("#section05 .projection-result");
     if (!projectionRows) return;
 
-    // 尚未按下本次「試算」時，不顯示任何年齡資產軌跡數字。
-    // 仍允許使用者先調整「推估至幾歲」，但真正的軌跡只在試算後產生。
+    // 未按「試算」前，05 區只保留「推估至幾歲？」輸入。
+    // 完整的退休目標、資產軌跡表格與相關結果，必須等使用者正式試算後才顯示。
     if (!hasCalculatedOnce) {
       projectionRows.innerHTML = "";
-      if (targetElement) targetElement.textContent = "—";
-      if (futureAssetsElement) futureAssetsElement.textContent = "—";
+      if (targetElement) targetElement.textContent = "";
+      if (futureAssetsElement) futureAssetsElement.textContent = "";
       if (projectionResult) projectionResult.classList.add("hidden");
       return;
     }
