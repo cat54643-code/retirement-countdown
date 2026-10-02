@@ -288,7 +288,7 @@
             <label class="strategy-amount-input"><input type="number" id="strategyCashAmount" min="0" max="50000000" step="10000"><span>元</span></label>
           </div>
           <input class="strategy-range" id="strategyCashRange" type="range" min="0" max="50000000" step="10000" value="0" aria-label="現金金額">
-          <label class="strategy-return"><span>年報酬率</span><input type="number" id="strategyCashReturn" min="-10" max="20" step="0.1"><span>%</span></label>
+          <label class="strategy-return"><span>年報酬率</span><input type="number" id="strategyCashReturn" min="-10" max="20" step="0.1"><span>%</span><small class="return-hint">💡 高利活儲可參考目前銀行方案利率</small></label>
         </div>
 
         <div class="strategy-asset-card">
@@ -297,7 +297,7 @@
             <label class="strategy-amount-input"><input type="number" id="strategyInvestmentAmount" min="0" max="50000000" step="10000"><span>元</span></label>
           </div>
           <input class="strategy-range" id="strategyInvestmentRange" type="range" min="0" max="50000000" step="10000" value="0" aria-label="投資金額">
-          <label class="strategy-return"><span>年報酬率</span><input type="number" id="strategyInvestmentReturn" min="-20" max="30" step="0.1"><span>%</span></label>
+          <label class="strategy-return"><span>年報酬率</span><input type="number" id="strategyInvestmentReturn" min="-20" max="30" step="0.1"><span>%</span><small class="return-hint">💡 0050／006208 可參考長期歷史年化報酬，實際會波動</small></label>
         </div>
 
         <div class="strategy-asset-card">
@@ -306,7 +306,7 @@
             <label class="strategy-amount-input"><input type="number" id="strategyDepositAmount" min="0" max="50000000" step="10000"><span>元</span></label>
           </div>
           <input class="strategy-range" id="strategyDepositRange" type="range" min="0" max="50000000" step="10000" value="0" aria-label="定存金額">
-          <label class="strategy-return"><span>年報酬率</span><input type="number" id="strategyDepositReturn" min="-10" max="20" step="0.1"><span>%</span></label>
+          <label class="strategy-return"><span>年報酬率</span><input type="number" id="strategyDepositReturn" min="-10" max="20" step="0.1"><span>%</span><small class="return-hint">💡 台幣定存可參考目前銀行牌告利率</small></label>
         </div>
       </div>
     </div>
@@ -327,7 +327,7 @@
           </div>
           <div class="asset-group-meta">
             <div class="asset-group-total" id="cashTotal">NT$ 0</div>
-            <label class="group-return"><span>年報酬率</span><input type="number" id="cashAnnualReturn" min="-10" max="20" step="0.1"><span>%</span></label>
+            <label class="group-return"><span>年報酬率</span><input type="number" id="cashAnnualReturn" min="-10" max="20" step="0.1"><span>%</span><small class="return-hint">💡 高利活儲可參考目前銀行方案利率</small></label>
           </div>
         </div>
         <div id="cashList"></div>
@@ -344,7 +344,7 @@
           </div>
           <div class="asset-group-meta">
             <div class="asset-group-total" id="investmentTotal">NT$ 0</div>
-            <label class="group-return"><span>年報酬率</span><input type="number" id="investmentAnnualReturn" min="-20" max="30" step="0.1"><span>%</span></label>
+            <label class="group-return"><span>年報酬率</span><input type="number" id="investmentAnnualReturn" min="-20" max="30" step="0.1"><span>%</span><small class="return-hint">💡 0050／006208 可參考長期歷史年化報酬，實際會波動</small></label>
           </div>
         </div>
         <div id="investmentList"></div>
@@ -361,7 +361,7 @@
           </div>
           <div class="asset-group-meta">
             <div class="asset-group-total" id="depositTotal">NT$ 0</div>
-            <label class="group-return"><span>年報酬率</span><input type="number" id="depositAnnualReturn" min="-10" max="20" step="0.1"><span>%</span></label>
+            <label class="group-return"><span>年報酬率</span><input type="number" id="depositAnnualReturn" min="-10" max="20" step="0.1"><span>%</span><small class="return-hint">💡 台幣定存可參考目前銀行牌告利率</small></label>
           </div>
         </div>
         <div id="depositList"></div>
@@ -515,9 +515,9 @@
       <div class="form-grid pension-grid">
         <label><span>目前勞退專戶餘額</span><input type="number" id="laborPensionBalance" min="0" step="10000"><small>NT$</small></label>
         <label><span>勞退計算月薪</span><input type="number" id="laborPensionSalary" min="0" step="1000"><small>NT$ / 月</small></label>
-        <label><span>雇主提繳率</span><input type="number" id="laborPensionEmployerRate" min="0" max="6" step="0.1"><small>%</small></label>
+        <label><span>雇主提繳率</span><input type="number" id="laborPensionEmployerRate" min="0" max="6" step="0.1"><small>%</small><em class="field-hint">💡 一般受僱勞工雇主依法提繳不得低於 6%</em></label>
         <label><span>個人自提率</span><input type="number" id="laborPensionSelfRate" min="0" max="6" step="0.1"><small>%</small></label>
-        <label><span>勞退預估年報酬率</span><input type="number" id="laborPensionReturn" min="0" max="10" step="0.1"><small>% / 年</small></label>
+        <label><span>勞退預估年報酬率</span><input type="number" id="laborPensionReturn" min="0" max="10" step="0.1"><small>% / 年</small><em class="field-hint">💡 僅供情境試算，實際收益依勞退基金投資績效而定</em></label>
         <label><span>預估勞退請領年齡</span><input type="number" id="laborPensionClaimAge" min="60" max="100"><small>歲</small></label>
       </div>
 

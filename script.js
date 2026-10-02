@@ -98,15 +98,23 @@ document.addEventListener("DOMContentLoaded", function () {
     if (!grid) return;
     var steps = [
       { key: "goal", icon: "🎯", title: "換一個退休年齡", text: "看看如果提早或延後退休，結果會怎麼變。", target: "section01" },
-      { key: "asset", icon: "💰", title: "調整每月投入", text: "改變每月新增投資，再試算一次累積速度。", target: "section04" },
+      { key: "asset", icon: "💰", title: "調整每月投入", text: "改變每月新增投資，再試算一次累積速度。", target: "monthlyInvestment" },
       { key: "micro", icon: "🌱", title: "試算半退休", text: "保留部分工作收入，看看資產需要補多少生活費。", target: "section01" }
     ];
     if (snapshot.retirementAge != null && snapshot.retirementAge <= snapshot.currentAge) {
       steps[0].title = "看看能否再提前";
       steps[0].text = "把退休年齡往前調，看看新的資產需求。";
     }
-    grid.innerHTML = steps.map(function (step) {
-      return '<button type="button" class="next-step-item" data-next-step="' + step.key + '" data-target="' + step.target + '">' +
+    grid.innerHTML = steps.map(function (step, index) {
+      // 先建立按鈕，再以「實際欄位 ID」作為導向目標，避免中間版面高度變動後捲到錯誤區塊。
+      trackEvent("next_step_view", {
+        goal_type: getActiveGoal(),
+        step: step.key,
+        step_title: step.title,
+        position: index + 1,
+        target_id: step.target
+      });
+      return '<button type="button" class="next-step-item" data-next-step="' + step.key + '" data-target="' + step.target + '" data-step-title="' + step.title + '" data-position="' + (index + 1) + '">' +
         '<span class="next-step-icon">' + step.icon + '</span>' +
         '<span><strong>' + step.title + '</strong><small>' + step.text + '</small></span>' +
         '<span class="next-step-arrow">›</span>' +
@@ -1867,10 +1875,28 @@ document.addEventListener("DOMContentLoaded", function () {
   document.addEventListener("click", function (event) {
     var nextStep = event.target.closest(".next-step-item");
     if (!nextStep) return;
-    trackEvent("next_step_click", { goal_type: getActiveGoal(), step: nextStep.getAttribute("data-next-step") || "unknown" });
-    var targetId = nextStep.getAttribute("data-target");
+    var step = nextStep.getAttribute("data-next-step") || "unknown";
+    var targetId = nextStep.getAttribute("data-target") || "";
     var target = targetId ? document.getElementById(targetId) : null;
-    if (target) target.scrollIntoView({ behavior: "smooth", block: "start" });
+    trackEvent("next_step_click", {
+      goal_type: getActiveGoal(),
+      step: step,
+      step_title: nextStep.getAttribute("data-step-title") || "",
+      position: Number(nextStep.getAttribute("data-position")) || 0,
+      target_id: targetId
+    });
+    if (target) {
+      // 導向真正要調整的欄位，而不是固定的 section 頂端。
+      // 這樣即使前方 UI 高度改變，也不會讓「調整每月投入」落到錯誤位置。
+      target.scrollIntoView({ behavior: "smooth", block: "center" });
+      setTimeout(function () {
+        if (typeof target.focus === "function") {
+          try { target.focus({ preventScroll: true }); } catch (e) { target.focus(); }
+        }
+        target.classList.add("next-step-focus");
+        setTimeout(function () { target.classList.remove("next-step-focus"); }, 1800);
+      }, 550);
+    }
   });
   /* =====================================================
      13. 儲存資料

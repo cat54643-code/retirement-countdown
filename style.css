@@ -2043,3 +2043,28 @@ footer {
     pointer-events: none;
   }
 }
+
+/* v4.11.7：報酬率提示與下一步精準導向 */
+.strategy-return,
+.group-return {
+  flex-wrap: wrap;
+}
+.return-hint {
+  flex-basis: 100%;
+  display: block;
+  margin-top: 2px;
+  color: #8b94a3;
+  font-size: 11px;
+  line-height: 1.45;
+  font-weight: 400;
+  white-space: normal;
+}
+.group-return .return-hint {
+  flex-basis: 100%;
+}
+.next-step-focus {
+  outline: 3px solid rgba(99,124,242,0.28);
+  outline-offset: 3px;
+  box-shadow: 0 0 0 5px rgba(99,124,242,0.08);
+  transition: outline .2s ease, box-shadow .2s ease;
+}
