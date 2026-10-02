@@ -12,9 +12,7 @@ document.addEventListener("DOMContentLoaded", function () {
      - 資產成長預估
      - 儲存 / 載入 / 重設
   ===================================================== */
-  var STORAGE_KEY = "retirementCountdownPlan";
-  var HISTORY_KEY = "retirementCountdownHistory";
-  var MAX_HISTORY = 20;
+  var STORAGE_KEY = "retirementCountdownPlan_v2";
 
   /* =====================================================
      GA4 互動追蹤
@@ -182,86 +180,12 @@ document.addEventListener("DOMContentLoaded", function () {
     return match ? Number(match[0]) : null;
   }
 
-  function getCalculationHistory() {
-    try {
-      var saved = localStorage.getItem(HISTORY_KEY);
-      var history = saved ? JSON.parse(saved) : [];
-      return Array.isArray(history) ? history : [];
-    } catch (error) {
-      return [];
-    }
-  }
-
-  function saveCalculationSnapshot(snapshot) {
-    var history = getCalculationHistory();
-    history.push(snapshot);
-    if (history.length > MAX_HISTORY) history = history.slice(history.length - MAX_HISTORY);
-    try {
-      localStorage.setItem(HISTORY_KEY, JSON.stringify(history));
-    } catch (error) {
-      /* 進度紀錄只影響比較功能，不影響主要試算 */
-    }
-    return history;
-  }
-
-  function formatShortDate(timestamp) {
-    var date = new Date(timestamp);
-    if (!isFinite(date.getTime())) return "";
-    return (date.getMonth() + 1) + "/" + date.getDate();
-  }
-
-  function formatChange(value, suffix) {
-    var sign = value > 0 ? "+" : value < 0 ? "−" : "±";
-    var amount = Math.abs(Math.round(value || 0)).toLocaleString();
-    return sign + amount + (suffix || "");
-  }
-
   function getEstimatedRetirementAgeValue() {
     var element = document.getElementById("projectionRetirementAge");
     if (!element) return null;
     var text = element.textContent || "";
     var match = text.match(/\d+(?:\.\d+)?/);
     return match ? Number(match[0]) : null;
-  }
-
-  function renderComparison(snapshot, previous) {
-    var content = document.getElementById("comparisonContent");
-    var card = document.getElementById("comparisonCard");
-    if (!content || !card) return;
-
-    if (!previous) {
-      card.classList.remove("has-comparison");
-      content.innerHTML = '<div class="comparison-empty">這是第一次試算。之後再次試算，就能看到你的資產與退休進度變化。</div>';
-      return;
-    }
-
-    card.classList.add("has-comparison");
-    var assetChange = snapshot.totalAssets - previous.totalAssets;
-    var ageText = "—";
-    if (snapshot.retirementAge != null && previous.retirementAge != null) {
-      var ageChange = snapshot.retirementAge - previous.retirementAge;
-      ageText = ageChange === 0 ? "沒有變化" : (ageChange < 0 ? "提前 " + Math.abs(ageChange).toFixed(0) + " 年" : "延後 " + ageChange.toFixed(0) + " 年");
-    }
-
-    var maxAssets = Math.max(previous.totalAssets, snapshot.totalAssets, 1);
-    var previousWidth = Math.max((previous.totalAssets / maxAssets) * 100, previous.totalAssets > 0 ? 8 : 0);
-    var currentWidth = Math.max((snapshot.totalAssets / maxAssets) * 100, snapshot.totalAssets > 0 ? 8 : 0);
-    var previousLabel = formatNTD(previous.totalAssets);
-    var currentLabel = formatNTD(snapshot.totalAssets);
-
-    content.innerHTML =
-      '<div class="comparison-summary">' +
-        '<div><span>總資產變化</span><strong>' + formatChange(assetChange) + '</strong></div>' +
-        '<div><span>預估達成年齡</span><strong>' + ageText + '</strong></div>' +
-      '</div>' +
-      '<div class="comparison-bars comparison-bars-horizontal" role="img" aria-label="上次與這次總資產比較圖">' +
-        '<div class="comparison-bar-row">' +
-          '<span>上次</span><div class="comparison-bar-track"><div class="comparison-bar-fill previous" style="width:' + previousWidth.toFixed(1) + '%"></div></div><strong>' + previousLabel + '</strong>' +
-        '</div>' +
-        '<div class="comparison-bar-row">' +
-          '<span>這次</span><div class="comparison-bar-track"><div class="comparison-bar-fill current" style="width:' + currentWidth.toFixed(1) + '%"></div></div><strong>' + currentLabel + '</strong>' +
-        '</div>' +
-      '</div>';
   }
 
   function renderNextSteps(snapshot) {
@@ -283,6 +207,39 @@ document.addEventListener("DOMContentLoaded", function () {
         '<span class="next-step-arrow">›</span>' +
       '</button>';
     }).join("");
+  }
+
+  function resetSaveChoiceUI() {
+    var card = document.getElementById("saveChoiceCard");
+    var status = document.getElementById("saveChoiceStatus");
+    var saveButton = document.getElementById("saveResultBtn");
+    var skipButton = document.getElementById("skipSaveBtn");
+    if (card) card.classList.remove("choice-made", "saved-choice", "skipped-choice");
+    if (status) status.textContent = "";
+    if (saveButton) { saveButton.disabled = false; saveButton.textContent = "💾 儲存這次設定"; }
+    if (skipButton) { skipButton.disabled = false; skipButton.textContent = "↩️ 不需要儲存"; }
+  }
+
+  function handleSaveChoice(choice) {
+    var card = document.getElementById("saveChoiceCard");
+    var status = document.getElementById("saveChoiceStatus");
+    var saveButton = document.getElementById("saveResultBtn");
+    var skipButton = document.getElementById("skipSaveBtn");
+    trackEvent("save_choice", { choice: choice });
+
+    if (choice === "save") {
+      saveRetirementData();
+      if (card) card.classList.add("choice-made", "saved-choice");
+      if (status) status.textContent = "✅ 已儲存。下次回來可以直接繼續試算。";
+      if (saveButton) { saveButton.disabled = true; saveButton.textContent = "✓ 已儲存這次設定"; }
+      if (skipButton) skipButton.disabled = true;
+    } else {
+      try { localStorage.removeItem(STORAGE_KEY); } catch (error) {}
+      if (card) card.classList.add("choice-made", "skipped-choice");
+      if (status) status.textContent = "已選擇不留存。下次試算時重新填寫即可。";
+      if (skipButton) { skipButton.disabled = true; skipButton.textContent = "✓ 不需要儲存"; }
+      if (saveButton) saveButton.disabled = true;
+    }
   }
 
   function showCalculationResult() {
@@ -313,9 +270,6 @@ document.addEventListener("DOMContentLoaded", function () {
       currentAge: data.currentAge,
       endAssets: getNumericText("age85Remaining")
     };
-    var history = getCalculationHistory();
-    var previous = history.length ? history[history.length - 1] : null;
-
     var ageElement = document.getElementById("dashboardRetirementAge");
     var targetElement = document.getElementById("dashboardRetirementTarget");
     var assetsElement = document.getElementById("dashboardCurrentAssets");
@@ -350,7 +304,7 @@ document.addEventListener("DOMContentLoaded", function () {
     if (updatedElement) updatedElement.textContent = "剛剛更新";
 
     renderNextSteps(snapshot);
-    renderComparison(snapshot, previous);
+    resetSaveChoiceUI();
     dashboard.classList.remove("hidden");
     dashboard.classList.add("is-visible");
     analyticsResultShown = true;
@@ -358,12 +312,9 @@ document.addEventListener("DOMContentLoaded", function () {
 
     trackEvent("result_view", {
       goal_type: data.goal,
-      comparison_shown: previous ? "yes" : "no",
       calculation_index: analyticsSessionCalculationCount
     });
-    if (previous) trackEvent("comparison_view", { goal_type: data.goal });
 
-    saveCalculationSnapshot(snapshot);
     setTimeout(function () {
       dashboard.scrollIntoView({ behavior: "smooth", block: "start" });
     }, 30);
@@ -2177,21 +2128,12 @@ document.addEventListener("DOMContentLoaded", function () {
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
     } catch (error) {
-      var errorStatus = document.getElementById("saveStatus");
+      var errorStatus = document.getElementById("saveChoiceStatus");
       if (errorStatus) errorStatus.textContent = "⚠️ 無法儲存，請檢查瀏覽器設定";
       return;
     }
-    var saveStatus = document.getElementById("saveStatus");
-    if (saveStatus) saveStatus.textContent = "✅ 資料已儲存於目前裝置";
-    var topSaveButton = document.getElementById("saveBtn");
-    if (topSaveButton) {
-      topSaveButton.classList.add("saved");
-      topSaveButton.textContent = "✓ 已儲存";
-      setTimeout(function () {
-        topSaveButton.classList.remove("saved");
-        topSaveButton.textContent = "💾 儲存";
-      }, 1500);
-    }
+    var saveStatus = document.getElementById("saveChoiceStatus");
+    if (saveStatus) saveStatus.textContent = "✅ 已儲存這次設定。下次回來可以直接繼續試算。";
   }
   /* =====================================================
      14. 載入儲存資料
@@ -2314,35 +2256,27 @@ document.addEventListener("DOMContentLoaded", function () {
     }
     updateFxRateDisplay();
     updateAllRetirementCalculations();
-    var saveStatus = document.getElementById("saveStatus");
-    if (saveStatus) saveStatus.textContent = "📂 已自動載入上次儲存的資料";
   }
   /* =====================================================
      15. 儲存 / 重設按鈕
   ===================================================== */
-  var saveButton = document.getElementById("saveBtn");
-  var saveButton2 = document.getElementById("saveBtn2");
+  var saveResultButton = document.getElementById("saveResultBtn");
+  var skipSaveButton = document.getElementById("skipSaveBtn");
   var resetButton = document.getElementById("resetBtn");
-  if (saveButton) {
-    saveButton.addEventListener("click", function () {
-      trackEvent("save_plan", { location: "header" });
-      saveRetirementData();
+  if (saveResultButton) {
+    saveResultButton.addEventListener("click", function () {
+      handleSaveChoice("save");
     });
   }
-  if (saveButton2) {
-    saveButton2.addEventListener("click", function () {
-      trackEvent("save_plan", { location: "bottom" });
-      saveRetirementData();
+  if (skipSaveButton) {
+    skipSaveButton.addEventListener("click", function () {
+      handleSaveChoice("skip");
     });
   }
   if (resetButton) {
     resetButton.addEventListener("click", function () {
       trackEvent("reset_plan");
-      try {
-        localStorage.removeItem(STORAGE_KEY);
-      } catch (error) {
-        /* 無法清除時仍重新載入頁面 */
-      }
+      try { localStorage.removeItem(STORAGE_KEY); } catch (error) {}
       location.reload();
     });
   }
