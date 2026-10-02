@@ -1879,7 +1879,8 @@ footer {
 .strategy-asset-head strong { font-size: 17px; }
 .strategy-amount-input { display: flex; align-items: center; gap: 5px; }
 .strategy-amount-input input {
-  width: 135px;
+  width: 190px;
+  max-width: 100%;
   text-align: right;
   font-weight: 800;
   font-size: 16px;
@@ -1928,7 +1929,7 @@ footer {
 @media (max-width: 650px) {
   .asset-mode-switch { grid-template-columns: 1fr; }
   .strategy-asset-head { align-items: flex-start; }
-  .strategy-amount-input input { width: 120px; }
+  .strategy-amount-input input { width: 180px; max-width: 100%; }
   .asset-group-header-detail { flex-direction: column; }
   .asset-group-meta { width: 100%; justify-content: space-between; align-items: center; }
   .asset-saving-plan label { align-items: flex-start; flex-direction: column; gap: 6px; }

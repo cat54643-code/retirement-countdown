@@ -120,11 +120,18 @@ document.addEventListener("DOMContentLoaded", function () {
     var data = getRetirementData();
     var plannedRetirementAge = data.plannedRetirementAge;
     var retirementBreakdown = getAccumulatedAssetBreakdownAtAge(plannedRetirementAge);
-    var projectedAtRetirement = retirementBreakdown.cash + retirementBreakdown.deposit + retirementBreakdown.investment;
+    // 尚未填寫任何資產時，結果頁的「退休時預估資產」維持 NT$ 0。
+    // 每月新增投資仍可用於後續年齡資產軌跡，但不應讓空白資產輸入看起來像已有退休資產。
+    var hasCurrentAssets = data.currentAssets > 0.01;
+    var projectedAtRetirement = hasCurrentAssets
+      ? retirementBreakdown.cash + retirementBreakdown.deposit + retirementBreakdown.investment
+      : 0;
     var retirementTarget = data.retirementTarget;
     var progress = retirementTarget > 0 ? Math.min(projectedAtRetirement / retirementTarget * 100, 100) : 0;
-    var retirementMet = projectedAtRetirement >= retirementTarget;
-    var estimatedRetirementAge = getEstimatedRetirementAgeValue();
+    var retirementMet = hasCurrentAssets && projectedAtRetirement >= retirementTarget;
+    // calculateRetirementAge() 已在按下「試算」時完成；直接讀取其結果，
+    // 避免呼叫不存在的 getEstimatedRetirementAgeValue() 導致結果頁中斷。
+    var estimatedRetirementAge = getNumericText("projectionRetirementAge");
 
     var snapshot = {
       timestamp: Date.now(),
@@ -1335,10 +1342,14 @@ document.addEventListener("DOMContentLoaded", function () {
     // 「目前還差」改為比較退休當下的預估資產與退休當下的需求，避免把今天的資產直接
     // 與多年後、已經含通膨與退休保障的目標混在一起。
     var retirementBreakdown = getAccumulatedAssetBreakdownAtAge(data.plannedRetirementAge);
-    var projectedAtRetirement = retirementBreakdown.cash + retirementBreakdown.deposit + retirementBreakdown.investment;
+    // 尚未填寫任何資產時，04 區與結果頁一致顯示 NT$ 0。
+    var hasCurrentAssets = data.currentAssets > 0.01;
+    var projectedAtRetirement = hasCurrentAssets
+      ? retirementBreakdown.cash + retirementBreakdown.deposit + retirementBreakdown.investment
+      : 0;
     var remaining = Math.max(data.retirementTarget - projectedAtRetirement, 0);
     if (remainingElement) {
-      remainingElement.textContent = projectedAtRetirement >= data.retirementTarget ? "已達成 🎉" : formatNTD(remaining);
+      remainingElement.textContent = hasCurrentAssets && projectedAtRetirement >= data.retirementTarget ? "已達成 🎉" : formatNTD(remaining);
     }
     var progress = data.retirementTarget > 0 ? projectedAtRetirement / data.retirementTarget * 100 : 0;
     progress = Math.max(0, Math.min(progress, 100));
