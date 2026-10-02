@@ -137,8 +137,9 @@ document.addEventListener("DOMContentLoaded", function () {
       ? retirementBreakdown.cash + retirementBreakdown.deposit + retirementBreakdown.investment
       : 0;
     var retirementTarget = data.retirementTarget;
-    var progress = retirementTarget > 0 ? Math.min(projectedAtRetirement / retirementTarget * 100, 100) : 0;
-    var retirementMet = hasCurrentAssets && projectedAtRetirement >= retirementTarget;
+    var progress = retirementTarget <= 0 ? 100 : Math.min(projectedAtRetirement / retirementTarget * 100, 100);
+    // 目標為 0 代表不需要資產補足退休生活缺口，視為已達成。
+    var retirementMet = retirementTarget <= 0 || (hasCurrentAssets && projectedAtRetirement >= retirementTarget);
     // calculateRetirementAge() 已在按下「試算」時完成；直接讀取其結果，
     // 避免呼叫不存在的 getEstimatedRetirementAgeValue() 導致結果頁中斷。
     var estimatedRetirementAge = getNumericText("projectionRetirementAge");
@@ -1359,9 +1360,13 @@ document.addEventListener("DOMContentLoaded", function () {
       : 0;
     var remaining = Math.max(data.retirementTarget - projectedAtRetirement, 0);
     if (remainingElement) {
-      remainingElement.textContent = hasCurrentAssets && projectedAtRetirement >= data.retirementTarget ? "已達成 🎉" : formatNTD(remaining);
+      remainingElement.textContent = data.retirementTarget <= 0 || (hasCurrentAssets && projectedAtRetirement >= data.retirementTarget)
+        ? "已達成 🎉"
+        : formatNTD(remaining);
     }
-    var progress = data.retirementTarget > 0 ? projectedAtRetirement / data.retirementTarget * 100 : 0;
+    var progress = data.retirementTarget <= 0
+      ? 100
+      : projectedAtRetirement / data.retirementTarget * 100;
     progress = Math.max(0, Math.min(progress, 100));
     if (progressPercentElement) progressPercentElement.textContent = progress.toFixed(1) + "%";
     if (progressBar) progressBar.style.width = progress + "%";
@@ -1415,21 +1420,29 @@ document.addEventListener("DOMContentLoaded", function () {
   function getLifeExpectancyAge() {
     var input = document.getElementById("lifeExpectancy");
     var currentAge = getGoalCurrentAge();
-    var value = input ? Number(input.value) : 0;
-    if (!isFinite(value) || !String(input && input.value || "").trim()) value = 0;
+    var raw = input ? String(input.value || "").trim() : "";
+    // 所有欄位採空白起始；未填預估壽命時不能假設為「目前年齡 + 1」，
+    // 否則 05 年齡軌跡會被錯誤限制在 34 歲（或目前年齡 + 1）。
+    if (!raw) return 0;
+    var value = Number(raw);
+    if (!isFinite(value)) return 0;
     value = Math.round(value);
-    value = Math.max(currentAge + 1, Math.min(value, 100));
-    return value;
+    return Math.max(currentAge + 1, Math.min(value, 100));
   }
 
   function getProjectionEndAge() {
     var currentAge = getGoalCurrentAge();
     var input = document.getElementById("projectionEndAge");
-    var value = input ? Number(input.value) : 0;
-    if (!isFinite(value) || !String(input && input.value || "").trim()) value = 0;
-    if (value <= 0) return 0;
+    var raw = input ? String(input.value || "").trim() : "";
+    var value = raw ? Number(raw) : 0;
+    if (!isFinite(value) || value <= 0) return 0;
     value = Math.round(value);
-    var maxAge = getLifeExpectancyAge();
+
+    // 05 的「推估至幾歲」是顯示範圍；預估壽命空白時不應被
+    // 鎖死在目前年齡 + 1。只有填寫預估壽命後才以它作為上限。
+    var lifeAge = getLifeExpectancyAge();
+    var maxAge = lifeAge > currentAge ? lifeAge : 100;
+    maxAge = Math.min(maxAge, 100);
     value = Math.max(currentAge, Math.min(value, maxAge));
     if (input) {
       input.min = currentAge;
@@ -1670,9 +1683,11 @@ document.addEventListener("DOMContentLoaded", function () {
     var noteElement = document.getElementById("calculationNoteText");
     if (noteElement) {
       var lifeAge = getLifeExpectancyAge();
-      noteElement.textContent = isSpendDownPlan()
-        ? "04、05 與勞退／勞保共用同一套月度現金流；退休後現金、定存、投資仍分開計算各自報酬率，再依當期比例支應生活費。此模式會把超過最低需求的資產逐步用到 " + lifeAge + " 歲。"
-        : "04、05 與勞退／勞保共用同一套月度現金流；退休後現金、定存、投資仍分開計算各自報酬率，再依當期比例支應生活費，並規劃至 " + lifeAge + " 歲。";
+      noteElement.textContent = lifeAge > 0
+        ? (isSpendDownPlan()
+          ? "04、05 與勞退／勞保共用同一套月度現金流；退休後現金、定存、投資仍分開計算各自報酬率，再依當期比例支應生活費。此模式會把超過最低需求的資產逐步用到 " + lifeAge + " 歲。"
+          : "04、05 與勞退／勞保共用同一套月度現金流；退休後現金、定存、投資仍分開計算各自報酬率，再依當期比例支應生活費，並規劃至 " + lifeAge + " 歲。")
+        : "04、05 與勞退／勞保共用同一套月度現金流；請先填寫預估壽命後，再進行完整退休現金流試算。";
     }
   }
 
@@ -1693,7 +1708,7 @@ document.addEventListener("DOMContentLoaded", function () {
     var assetText = document.createElement("span");
     assetText.textContent = formatNTD(assets);
     var completionText = document.createElement("span");
-    var completion = target > 0 ? assets / target * 100 : 0;
+    var completion = target <= 0 ? 100 : assets / target * 100;
     completionText.textContent = completion >= 100 ? "已達成" : completion.toFixed(0) + "%";
     var availableText = document.createElement("span");
     availableText.textContent = formatNTD(available.total);
@@ -1776,7 +1791,9 @@ document.addEventListener("DOMContentLoaded", function () {
     var element = document.getElementById("calculationNoteText");
     if (!element) return;
     var lifeAge = getLifeExpectancyAge();
-    element.textContent = "04、05 與勞退／勞保共用同一套月度現金流；退休後現金、定存、投資仍分開計算各自報酬率，並規劃至 " + lifeAge + " 歲。";
+    element.textContent = lifeAge > 0
+      ? "04、05 與勞退／勞保共用同一套月度現金流；退休後現金、定存、投資仍分開計算各自報酬率，並規劃至 " + lifeAge + " 歲。"
+      : "04、05 與勞退／勞保共用同一套月度現金流；請先填寫預估壽命後，再進行完整退休現金流試算。";
   }
 
   function updateAllRetirementCalculations() {
@@ -1845,9 +1862,13 @@ document.addEventListener("DOMContentLoaded", function () {
       var currentAge = getGoalCurrentAge();
       var value = Math.round(Number(target.value));
       if (!isFinite(value) || !String(target.value || "").trim()) return;
-      var maxAge = getLifeExpectancyAge();
+      // 預估壽命未填寫時，05 仍可先設定顯示到幾歲；
+      // 若已填寫預估壽命，則以預估壽命作為合理上限。
+      var lifeAge = getLifeExpectancyAge();
+      var maxAge = lifeAge > currentAge ? lifeAge : 100;
       value = Math.max(currentAge, Math.min(value, maxAge));
       target.value = value;
+      target.max = maxAge;
       markCalculationDirty();
       return;
     }
