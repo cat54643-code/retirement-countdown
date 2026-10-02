@@ -177,25 +177,25 @@
 
         <label>
           <span>目前年齡</span>
-          <input type="number" id="currentAge" value="33" min="18" max="100">
+          <input type="number" id="currentAge" min="18" max="100">
           <small>歲</small>
         </label>
 
         <label>
           <span>預計退休年齡</span>
-          <input type="number" id="fullRetireAge" value="55" min="18" max="100">
+          <input type="number" id="fullRetireAge" min="18" max="100">
           <small>歲</small>
         </label>
 
         <label>
           <span>預估壽命</span>
-          <input type="number" id="lifeExpectancy" value="85" min="50" max="120">
+          <input type="number" id="lifeExpectancy" min="50" max="120">
           <small>歲</small>
         </label>
 
         <label>
           <span>每月基本生活費</span>
-          <input type="number" id="monthlyExpense" value="30000" min="0" step="1000">
+          <input type="number" id="monthlyExpense" min="0" step="1000">
           <small>NT$ / 月</small>
           <em class="field-hint">建議包含房貸、保險、醫療等固定支出</em>
         </label>
@@ -214,25 +214,25 @@
 
         <label>
           <span>目前年齡</span>
-          <input type="number" id="microCurrentAge" value="33" min="18" max="100">
+          <input type="number" id="microCurrentAge" min="18" max="100">
           <small>歲</small>
         </label>
 
         <label>
           <span>預計 FIRE（半退休）年齡</span>
-          <input type="number" id="microRetireAge" value="38" min="18" max="100">
+          <input type="number" id="microRetireAge" min="18" max="100">
           <small>歲</small>
         </label>
 
         <label>
           <span>FIRE 後每月工作收入</span>
-          <input type="number" id="microIncome" value="30000" min="0" step="1000">
+          <input type="number" id="microIncome" min="0" step="1000">
           <small>NT$ / 月</small>
         </label>
 
         <label>
           <span>每月生活費</span>
-          <input type="number" id="microExpense" value="30000" min="0" step="1000">
+          <input type="number" id="microExpense" min="0" step="1000">
           <small>NT$ / 月</small>
           <em class="field-hint">建議包含房貸、保險、醫療等固定支出</em>
         </label>
@@ -285,28 +285,28 @@
         <div class="strategy-asset-card">
           <div class="strategy-asset-head">
             <div><span class="asset-group-icon">💵</span><strong>現金</strong></div>
-            <label class="strategy-amount-input"><input type="number" id="strategyCashAmount" value="0" min="0" max="50000000" step="10000"><span>元</span></label>
+            <label class="strategy-amount-input"><input type="number" id="strategyCashAmount" min="0" max="50000000" step="10000"><span>元</span></label>
           </div>
           <input class="strategy-range" id="strategyCashRange" type="range" min="0" max="50000000" step="10000" value="0" aria-label="現金金額">
-          <label class="strategy-return"><span>年報酬率</span><input type="number" id="strategyCashReturn" value="0" min="-10" max="20" step="0.1"><span>%</span></label>
+          <label class="strategy-return"><span>年報酬率</span><input type="number" id="strategyCashReturn" min="-10" max="20" step="0.1"><span>%</span></label>
         </div>
 
         <div class="strategy-asset-card">
           <div class="strategy-asset-head">
             <div><span class="asset-group-icon">📈</span><strong>投資</strong></div>
-            <label class="strategy-amount-input"><input type="number" id="strategyInvestmentAmount" value="0" min="0" max="50000000" step="10000"><span>元</span></label>
+            <label class="strategy-amount-input"><input type="number" id="strategyInvestmentAmount" min="0" max="50000000" step="10000"><span>元</span></label>
           </div>
           <input class="strategy-range" id="strategyInvestmentRange" type="range" min="0" max="50000000" step="10000" value="0" aria-label="投資金額">
-          <label class="strategy-return"><span>年報酬率</span><input type="number" id="strategyInvestmentReturn" value="6" min="-20" max="30" step="0.1"><span>%</span></label>
+          <label class="strategy-return"><span>年報酬率</span><input type="number" id="strategyInvestmentReturn" min="-20" max="30" step="0.1"><span>%</span></label>
         </div>
 
         <div class="strategy-asset-card">
           <div class="strategy-asset-head">
             <div><span class="asset-group-icon">🏦</span><strong>定存</strong></div>
-            <label class="strategy-amount-input"><input type="number" id="strategyDepositAmount" value="0" min="0" max="50000000" step="10000"><span>元</span></label>
+            <label class="strategy-amount-input"><input type="number" id="strategyDepositAmount" min="0" max="50000000" step="10000"><span>元</span></label>
           </div>
           <input class="strategy-range" id="strategyDepositRange" type="range" min="0" max="50000000" step="10000" value="0" aria-label="定存金額">
-          <label class="strategy-return"><span>年報酬率</span><input type="number" id="strategyDepositReturn" value="2" min="-10" max="20" step="0.1"><span>%</span></label>
+          <label class="strategy-return"><span>年報酬率</span><input type="number" id="strategyDepositReturn" min="-10" max="20" step="0.1"><span>%</span></label>
         </div>
       </div>
     </div>
@@ -327,7 +327,7 @@
           </div>
           <div class="asset-group-meta">
             <div class="asset-group-total" id="cashTotal">NT$ 0</div>
-            <label class="group-return"><span>年報酬率</span><input type="number" id="cashAnnualReturn" value="0" min="-10" max="20" step="0.1"><span>%</span></label>
+            <label class="group-return"><span>年報酬率</span><input type="number" id="cashAnnualReturn" min="-10" max="20" step="0.1"><span>%</span></label>
           </div>
         </div>
         <div id="cashList"></div>
@@ -344,7 +344,7 @@
           </div>
           <div class="asset-group-meta">
             <div class="asset-group-total" id="investmentTotal">NT$ 0</div>
-            <label class="group-return"><span>年報酬率</span><input type="number" id="investmentAnnualReturn" value="6" min="-20" max="30" step="0.1"><span>%</span></label>
+            <label class="group-return"><span>年報酬率</span><input type="number" id="investmentAnnualReturn" min="-20" max="30" step="0.1"><span>%</span></label>
           </div>
         </div>
         <div id="investmentList"></div>
@@ -361,7 +361,7 @@
           </div>
           <div class="asset-group-meta">
             <div class="asset-group-total" id="depositTotal">NT$ 0</div>
-            <label class="group-return"><span>年報酬率</span><input type="number" id="depositAnnualReturn" value="2" min="-10" max="20" step="0.1"><span>%</span></label>
+            <label class="group-return"><span>年報酬率</span><input type="number" id="depositAnnualReturn" min="-10" max="20" step="0.1"><span>%</span></label>
           </div>
         </div>
         <div id="depositList"></div>
@@ -372,7 +372,7 @@
     <div class="asset-saving-plan">
       <label>
         <span>退休前每月新增投資</span>
-        <input type="number" id="monthlyInvestment" value="0" min="0" step="1000">
+        <input type="number" id="monthlyInvestment" min="0" step="1000">
         <small>NT$ / 月</small>
       </label>
       <em>自動持續投入至設定的退休／FIRE年齡；退休後預設停止。</em>
@@ -500,7 +500,7 @@
     <div class="form-grid retirement-assumption-form">
       <label>
         <span>預估通膨率</span>
-        <input type="number" id="inflationRate" value="2" min="0" max="10" step="0.1">
+        <input type="number" id="inflationRate" min="0" max="10" step="0.1">
         <small>% / 年</small>
       </label>
     </div>
@@ -513,20 +513,20 @@
 
       <div class="sub-title">勞退新制</div>
       <div class="form-grid pension-grid">
-        <label><span>目前勞退專戶餘額</span><input type="number" id="laborPensionBalance" value="0" min="0" step="10000"><small>NT$</small></label>
-        <label><span>勞退計算月薪</span><input type="number" id="laborPensionSalary" value="0" min="0" step="1000"><small>NT$ / 月</small></label>
-        <label><span>雇主提繳率</span><input type="number" id="laborPensionEmployerRate" value="6" min="0" max="6" step="0.1"><small>%</small></label>
-        <label><span>個人自提率</span><input type="number" id="laborPensionSelfRate" value="0" min="0" max="6" step="0.1"><small>%</small></label>
-        <label><span>勞退預估年報酬率</span><input type="number" id="laborPensionReturn" value="2" min="0" max="10" step="0.1"><small>% / 年</small></label>
-        <label><span>預估勞退請領年齡</span><input type="number" id="laborPensionClaimAge" value="60" min="60" max="100"><small>歲</small></label>
+        <label><span>目前勞退專戶餘額</span><input type="number" id="laborPensionBalance" min="0" step="10000"><small>NT$</small></label>
+        <label><span>勞退計算月薪</span><input type="number" id="laborPensionSalary" min="0" step="1000"><small>NT$ / 月</small></label>
+        <label><span>雇主提繳率</span><input type="number" id="laborPensionEmployerRate" min="0" max="6" step="0.1"><small>%</small></label>
+        <label><span>個人自提率</span><input type="number" id="laborPensionSelfRate" min="0" max="6" step="0.1"><small>%</small></label>
+        <label><span>勞退預估年報酬率</span><input type="number" id="laborPensionReturn" min="0" max="10" step="0.1"><small>% / 年</small></label>
+        <label><span>預估勞退請領年齡</span><input type="number" id="laborPensionClaimAge" min="60" max="100"><small>歲</small></label>
       </div>
 
       <div class="sub-title">勞保老年年金</div>
       <div class="form-grid pension-grid">
-        <label><span>目前勞保年資</span><input type="number" id="laborInsuranceYears" value="0" min="0" max="60" step="0.1"><small>年</small></label>
-        <label><span>平均月投保薪資</span><input type="number" id="laborInsuranceSalary" value="0" min="0" step="1000"><small>NT$ / 月</small></label>
-        <label><span>預計持續投保至</span><input type="number" id="laborInsuranceWorkUntilAge" value="65" min="18" max="100"><small>歲</small></label>
-        <label><span>預估勞保請領年齡</span><input type="number" id="laborInsuranceClaimAge" value="65" min="60" max="70"><small>歲</small></label>
+        <label><span>目前勞保年資</span><input type="number" id="laborInsuranceYears" min="0" max="60" step="0.1"><small>年</small></label>
+        <label><span>平均月投保薪資</span><input type="number" id="laborInsuranceSalary" min="0" step="1000"><small>NT$ / 月</small></label>
+        <label><span>預計持續投保至</span><input type="number" id="laborInsuranceWorkUntilAge" min="18" max="100"><small>歲</small></label>
+        <label><span>預估勞保請領年齡</span><input type="number" id="laborInsuranceClaimAge" min="60" max="70"><small>歲</small></label>
       </div>
 
       <div class="pension-note">💡 勞退新制年滿 60 歲可請領；勞保老年年金自 2026 年起法定請領年齡為 65 歲，一般情況可提前最多 5 年請領，但每提前 1 年減給 4%。以上為規劃用估算值，實際金額應以勞保局個人試算結果為準。</div>
@@ -553,7 +553,7 @@
     <div class="form-grid projection-form">
       <label>
         <span>推估至幾歲？</span>
-        <input type="number" id="projectionEndAge" value="65" min="33" max="85">
+        <input type="number" id="projectionEndAge" min="18" max="120">
         <small>歲</small>
         <em class="field-hint">只控制年齡軌跡顯示到幾歲，不代表持續投資到這個年齡</em>
       </label>

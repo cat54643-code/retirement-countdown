@@ -479,7 +479,7 @@ document.addEventListener("DOMContentLoaded", function () {
           '</label>' +
           '<label>' +
             '<span>金額</span>' +
-            '<input type="number" class="cash-amount" value="0" min="0" step="1000">' +
+            '<input type="number" class="cash-amount" min="0" step="1000">' +
             '<small>元</small>' +
           '</label>' +
           '<label>' +
@@ -591,15 +591,15 @@ document.addEventListener("DOMContentLoaded", function () {
           '</label>' +
           '<label>' +
             '<span>持有數量</span>' +
-            '<input type="number" class="investment-quantity" value="0" min="0" step="0.0001">' +
+            '<input type="number" class="investment-quantity" min="0" step="0.0001">' +
           '</label>' +
           '<label>' +
             '<span>平均成本</span>' +
-            '<input type="number" class="investment-cost" value="0" min="0" step="0.01">' +
+            '<input type="number" class="investment-cost" min="0" step="0.01">' +
           '</label>' +
           '<label>' +
             '<span>目前價格</span>' +
-            '<input type="number" class="investment-price" value="0" min="0" step="0.01">' +
+            '<input type="number" class="investment-price" min="0" step="0.01">' +
           '</label>' +
         '</div>' +
         '<div class="investment-result">' +
@@ -712,7 +712,7 @@ document.addEventListener("DOMContentLoaded", function () {
           '</label>' +
           '<label>' +
             '<span>本金</span>' +
-            '<input type="number" class="deposit-amount" value="0" min="0" step="1000">' +
+            '<input type="number" class="deposit-amount" min="0" step="1000">' +
             '<small>元</small>' +
           '</label>' +
           '<label>' +
@@ -1407,8 +1407,8 @@ document.addEventListener("DOMContentLoaded", function () {
   function getLifeExpectancyAge() {
     var input = document.getElementById("lifeExpectancy");
     var currentAge = getGoalCurrentAge();
-    var value = input ? Number(input.value) : 85;
-    if (!isFinite(value)) value = 85;
+    var value = input ? Number(input.value) : 0;
+    if (!isFinite(value) || !String(input && input.value || "").trim()) value = 0;
     value = Math.round(value);
     value = Math.max(currentAge + 1, Math.min(value, 100));
     return value;
@@ -1417,8 +1417,9 @@ document.addEventListener("DOMContentLoaded", function () {
   function getProjectionEndAge() {
     var currentAge = getGoalCurrentAge();
     var input = document.getElementById("projectionEndAge");
-    var value = input ? Number(input.value) : 65;
-    if (!isFinite(value)) value = 65;
+    var value = input ? Number(input.value) : 0;
+    if (!isFinite(value) || !String(input && input.value || "").trim()) value = 0;
+    if (value <= 0) return 0;
     value = Math.round(value);
     var maxAge = getLifeExpectancyAge();
     value = Math.max(currentAge, Math.min(value, maxAge));
@@ -1470,6 +1471,9 @@ document.addEventListener("DOMContentLoaded", function () {
     }
     var accruedFutureYears = Math.max(workEnd - currentAge, 0);
     var totalInsuranceYears = Math.min(60, insuranceYears + accruedFutureYears);
+    // 所有欄位改為空白起始；若使用者沒有填寫勞保年資或投保薪資，
+    // 不應因公式中的固定加成而憑空產生 NT$3,000 月領。
+    if (totalInsuranceYears <= 0 || insuranceSalary <= 0) return 0;
     var monthlyA = totalInsuranceYears * insuranceSalary * 0.00775 + 3000;
     var monthlyB = totalInsuranceYears * insuranceSalary * 0.0155;
     var monthlyBenefit = Math.max(monthlyA, monthlyB);
@@ -1832,7 +1836,7 @@ document.addEventListener("DOMContentLoaded", function () {
       trackEvent("projection_range_change");
       var currentAge = getGoalCurrentAge();
       var value = Math.round(Number(target.value));
-      if (!isFinite(value)) value = currentAge;
+      if (!isFinite(value) || !String(target.value || "").trim()) return;
       var maxAge = getLifeExpectancyAge();
       value = Math.max(currentAge, Math.min(value, maxAge));
       target.value = value;
@@ -1934,7 +1938,7 @@ document.addEventListener("DOMContentLoaded", function () {
       var currency = item.querySelector(".cash-currency");
       cash.push({
         name: name ? name.value : "",
-        amount: amount ? amount.value : "0",
+        amount: amount ? amount.value : "",
         currency: currency ? currency.value : "TWD"
 
               });
@@ -1954,9 +1958,9 @@ document.addEventListener("DOMContentLoaded", function () {
         symbol: symbol ? symbol.value : "",
         market: market ? market.value : "TW",
         currency: currency ? currency.value : "TWD",
-        quantity: quantity ? quantity.value : "0",
-        cost: cost ? cost.value : "0",
-        price: price ? price.value : "0"
+        quantity: quantity ? quantity.value : "",
+        cost: cost ? cost.value : "",
+        price: price ? price.value : ""
       });
     });
     return investment;
@@ -1969,7 +1973,7 @@ document.addEventListener("DOMContentLoaded", function () {
       var currency = item.querySelector(".deposit-currency");
       deposit.push({
         name: name ? name.value : "",
-        amount: amount ? amount.value : "0",
+        amount: amount ? amount.value : "",
         currency: currency ? currency.value : "TWD"
       });
     });
