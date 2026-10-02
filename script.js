@@ -30,6 +30,8 @@ document.addEventListener("DOMContentLoaded", function () {
   var calculationDirty = true;
   var cashFlowTargetCache = {};
   var calculationRunId = 0;
+  // 年齡資產軌跡在本次頁面尚未按下「試算」前不顯示，避免使用尚未更新的舊數字誤導使用者。
+  var hasCalculatedOnce = false;
 
   function markCalculationDirty() {
     calculationDirty = true;
@@ -1560,7 +1562,20 @@ document.addEventListener("DOMContentLoaded", function () {
     var futureAssetsElement = document.getElementById("futureAssets");
     var targetElement = document.getElementById("projectionRetirementTarget");
     var projectionRows = document.getElementById("projectionRows");
+    var projectionResult = document.querySelector("#section05 .projection-result");
     if (!projectionRows) return;
+
+    // 尚未按下本次「試算」時，不顯示任何年齡資產軌跡數字。
+    // 仍允許使用者先調整「推估至幾歲」，但真正的軌跡只在試算後產生。
+    if (!hasCalculatedOnce) {
+      projectionRows.innerHTML = "";
+      if (targetElement) targetElement.textContent = "—";
+      if (futureAssetsElement) futureAssetsElement.textContent = "—";
+      if (projectionResult) projectionResult.classList.add("hidden");
+      return;
+    }
+
+    if (projectionResult) projectionResult.classList.remove("hidden");
     projectionRows.innerHTML = "";
     if (targetElement) targetElement.textContent = formatNTD(data.retirementTarget);
 
@@ -1836,6 +1851,8 @@ document.addEventListener("DOMContentLoaded", function () {
     calculateButton.addEventListener("click", function () {
       trackEvent("calculation_start", { goal_type: getActiveGoal() });
       clearCalculationCache();
+      // 從這一次按下「試算」開始，才允許顯示年齡資產軌跡。
+      hasCalculatedOnce = true;
       updateAllRetirementCalculations();
       finishCalculation();
       trackEvent("calculation_complete", { goal_type: getActiveGoal() });
