@@ -2092,3 +2092,78 @@ footer {
   box-shadow: 0 0 0 5px rgba(99,124,242,0.08);
   transition: outline .2s ease, box-shadow .2s ease;
 }
+
+/* v4.11.9：報酬率備註改為獨立提示區塊，避免手機版與輸入欄位重疊 */
+.strategy-return,
+.group-return {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  grid-template-areas:
+    "label input unit"
+    "hint hint hint";
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  min-width: 0;
+}
+.strategy-return > span:first-child,
+.group-return > span:first-child {
+  grid-area: label;
+  min-width: 0;
+}
+.strategy-return > input,
+.group-return > input {
+  grid-area: input;
+}
+.strategy-return > span:last-of-type,
+.group-return > span:last-of-type {
+  grid-area: unit;
+}
+.strategy-return .return-hint,
+.group-return .return-hint {
+  grid-area: hint;
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+  margin-top: 3px;
+  padding: 9px 11px;
+  border-radius: 12px;
+  background: #faf9f3;
+  color: #77735e;
+  font-size: 11px;
+  line-height: 1.5;
+  font-weight: 400;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+/* 詳細填寫模式：報酬率區塊獨立成一欄，避免擠壓資產總額 */
+.asset-group-meta {
+  align-items: flex-start;
+}
+.group-return {
+  min-width: 180px;
+}
+
+@media (max-width: 650px) {
+  .strategy-return,
+  .group-return {
+    grid-template-columns: minmax(0, 1fr) 72px auto;
+    grid-template-areas:
+      "label input unit"
+      "hint hint hint";
+    justify-content: stretch;
+    gap: 6px;
+  }
+
+  .strategy-return .return-hint,
+  .group-return .return-hint {
+    margin-top: 3px;
+    padding: 9px 11px;
+    font-size: 11px;
+  }
+
+  .group-return {
+    min-width: 0;
+  }
+}
