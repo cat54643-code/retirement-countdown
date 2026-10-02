@@ -12,7 +12,7 @@ document.addEventListener("DOMContentLoaded", function () {
      - 資產成長預估
      - 儲存 / 載入 / 重設
   ===================================================== */
-  var STORAGE_KEY = "retirementCountdownPlan_v2";
+  var STORAGE_KEY = "retirementCountdownPlan";
 
   /* =====================================================
      GA4 互動追蹤
@@ -21,126 +21,11 @@ document.addEventListener("DOMContentLoaded", function () {
   ===================================================== */
   function trackEvent(eventName, params) {
     if (typeof window.gtag === "function") {
-      window.gtag("event", eventName, mergeAnalyticsParams(params || {}));
+      window.gtag("event", eventName, params || {});
     }
-  }
-
-  function trackVisitType() {
-    var visitType = "new";
-    try {
-      visitType = localStorage.getItem(analyticsVisitStorageKey) ? "return" : "new";
-      localStorage.setItem(analyticsVisitStorageKey, String(Date.now()));
-    } catch (error) {
-      visitType = "unknown";
-    }
-    trackEvent("site_visit", {
-      visit_type: visitType,
-      landing_path: window.location.pathname
-    });
-    if (Object.keys(analyticsCampaign).some(function(key) { return analyticsCampaign[key]; })) {
-      trackEvent("campaign_context", {
-        landing_path: window.location.pathname,
-        visit_type: visitType
-      });
-    }
-  }
-
-  function setupScrollDepthTracking() {
-    var marks = [25, 50, 75, 90];
-    function checkDepth() {
-      var doc = document.documentElement;
-      var maxScroll = Math.max(doc.scrollHeight - window.innerHeight, 1);
-      var percent = Math.round((window.scrollY / maxScroll) * 100);
-      marks.forEach(function(mark) {
-        if (percent >= mark && !analyticsScrollMarks[mark]) {
-          analyticsScrollMarks[mark] = true;
-          trackEvent("scroll_depth", { percent_scrolled: mark });
-        }
-      });
-    }
-    window.addEventListener("scroll", checkDepth, { passive: true });
-    window.addEventListener("resize", checkDepth);
-    checkDepth();
-  }
-
-  function setupExitTracking() {
-    function handleExit() {
-      if (!analyticsFormStarted || analyticsResultShown) return;
-      trackEvent("calculation_abandon", {
-        goal_type: getActiveGoal(),
-        reason: "left_before_result",
-        last_field_id: analyticsLastFieldId || "unknown",
-        last_section: analyticsLastSection || "unknown",
-        time_from_form_start_ms: analyticsFormStartedAt ? Date.now() - analyticsFormStartedAt : 0
-      });
-      analyticsFormStarted = false;
-      analyticsFormStartedAt = null;
-    }
-    document.addEventListener("visibilitychange", function() {
-      if (document.visibilityState === "hidden") {
-        clearTimeout(analyticsHiddenTimer);
-        analyticsHiddenTimer = setTimeout(handleExit, 8000);
-      } else {
-        clearTimeout(analyticsHiddenTimer);
-      }
-    });
   }
 
   var trackedFields = {};
-  var analyticsFormStarted = false;
-  var analyticsResultShown = false;
-  var analyticsScrollMarks = {};
-  var analyticsVisitStorageKey = "retirementCountdownAnalyticsVisit";
-  var analyticsFormStartedAt = null;
-  var analyticsLastFieldId = null;
-  var analyticsLastSection = null;
-  var analyticsHiddenTimer = null;
-  var analyticsSessionCalculationCount = 0;
-  var analyticsCampaign = {};
-
-  function getAnalyticsCampaignContext() {
-    var params = {};
-    try {
-      var url = new URL(window.location.href);
-      var source = (url.searchParams.get("utm_source") || "").trim();
-      var medium = (url.searchParams.get("utm_medium") || "").trim();
-      var campaign = (url.searchParams.get("utm_campaign") || "").trim();
-      var content = (url.searchParams.get("utm_content") || "").trim();
-      var term = (url.searchParams.get("utm_term") || "").trim();
-      var stored = sessionStorage.getItem("retirementCountdownCampaign");
-      if (!source && !medium && !campaign && stored) {
-        try { params = JSON.parse(stored) || {}; } catch (error) { params = {}; }
-      } else {
-        params = { source: source, medium: medium, campaign: campaign, content: content, term: term };
-        if (source || medium || campaign || content || term) {
-          sessionStorage.setItem("retirementCountdownCampaign", JSON.stringify(params));
-        }
-      }
-    } catch (error) {
-      params = {};
-    }
-    return params;
-  }
-
-  function getCampaignEventParams() {
-    var params = {};
-    if (analyticsCampaign.source) params.campaign_source = analyticsCampaign.source;
-    if (analyticsCampaign.medium) params.campaign_medium = analyticsCampaign.medium;
-    if (analyticsCampaign.campaign) params.campaign_name = analyticsCampaign.campaign;
-    if (analyticsCampaign.content) params.campaign_content = analyticsCampaign.content;
-    if (analyticsCampaign.term) params.campaign_term = analyticsCampaign.term;
-    return params;
-  }
-
-  function mergeAnalyticsParams(base) {
-    var result = {};
-    Object.keys(base || {}).forEach(function(key) { result[key] = base[key]; });
-    var campaignParams = getCampaignEventParams();
-    Object.keys(campaignParams).forEach(function(key) { result[key] = campaignParams[key]; });
-    return result;
-  }
-
-  analyticsCampaign = getAnalyticsCampaignContext();
   // 重計算採手動觸發：輸入時只標記資料變更，不啟動昂貴的退休現金流試算。
   var calculationDirty = true;
   var cashFlowTargetCache = {};
@@ -148,13 +33,13 @@ document.addEventListener("DOMContentLoaded", function () {
 
   function markCalculationDirty() {
     calculationDirty = true;
-    analyticsResultShown = false;
     var button = document.getElementById("calculateBtn");
     var status = document.getElementById("calculationStatus");
     var wrap = document.querySelector(".calculate-float-wrap");
     if (button) button.classList.add("is-dirty");
     if (wrap) wrap.classList.add("is-dirty");
     if (status) status.textContent = "資料已變更，點擊「試算」更新結果";
+    updateCalculatePrompt();
   }
 
   function clearCalculationCache() {
@@ -171,7 +56,33 @@ document.addEventListener("DOMContentLoaded", function () {
     if (button) button.classList.remove("is-dirty");
     if (wrap) wrap.classList.remove("is-dirty");
     if (status) status.textContent = "已更新試算結果";
+    updateCalculatePrompt();
   }
+  function updateCalculatePrompt() {
+    var wrap = document.querySelector(".calculate-float-wrap");
+    var status = document.getElementById("calculationStatus");
+    if (!wrap || !status) return;
+    var nearEnd = (window.scrollY + window.innerHeight) >= (document.documentElement.scrollHeight - 700);
+    if (calculationDirty && nearEnd) {
+      wrap.classList.add("is-near-end");
+      status.textContent = "填寫完成了？點我試算";
+    } else {
+      wrap.classList.remove("is-near-end");
+      status.textContent = calculationDirty ? "資料已變更，點擊「試算」更新結果" : "已更新試算結果";
+    }
+  }
+
+  var promptTicking = false;
+  window.addEventListener("scroll", function () {
+    if (promptTicking) return;
+    promptTicking = true;
+    window.requestAnimationFrame(function () {
+      updateCalculatePrompt();
+      promptTicking = false;
+    });
+  }, { passive: true });
+  window.addEventListener("resize", updateCalculatePrompt);
+
   function getNumericText(id) {
     var element = document.getElementById(id);
     if (!element) return null;
@@ -180,20 +91,12 @@ document.addEventListener("DOMContentLoaded", function () {
     return match ? Number(match[0]) : null;
   }
 
-  function getEstimatedRetirementAgeValue() {
-    var element = document.getElementById("projectionRetirementAge");
-    if (!element) return null;
-    var text = element.textContent || "";
-    var match = text.match(/\d+(?:\.\d+)?/);
-    return match ? Number(match[0]) : null;
-  }
-
   function renderNextSteps(snapshot) {
     var grid = document.getElementById("nextStepGrid");
     if (!grid) return;
     var steps = [
       { key: "goal", icon: "🎯", title: "換一個退休年齡", text: "看看如果提早或延後退休，結果會怎麼變。", target: "section01" },
-      { key: "asset", icon: "💰", title: "調整每月投入", text: "改變每月新增投資，再試算一次累積速度。", target: "section02" },
+      { key: "asset", icon: "💰", title: "調整每月投入", text: "改變每月新增投資，再試算一次累積速度。", target: "section04" },
       { key: "micro", icon: "🌱", title: "試算半退休", text: "保留部分工作收入，看看資產需要補多少生活費。", target: "section01" }
     ];
     if (snapshot.retirementAge != null && snapshot.retirementAge <= snapshot.currentAge) {
@@ -209,39 +112,6 @@ document.addEventListener("DOMContentLoaded", function () {
     }).join("");
   }
 
-  function resetSaveChoiceUI() {
-    var card = document.getElementById("saveChoiceCard");
-    var status = document.getElementById("saveChoiceStatus");
-    var saveButton = document.getElementById("saveResultBtn");
-    var skipButton = document.getElementById("skipSaveBtn");
-    if (card) card.classList.remove("choice-made", "saved-choice", "skipped-choice");
-    if (status) status.textContent = "";
-    if (saveButton) { saveButton.disabled = false; saveButton.textContent = "💾 儲存這次設定"; }
-    if (skipButton) { skipButton.disabled = false; skipButton.textContent = "↩️ 不需要儲存"; }
-  }
-
-  function handleSaveChoice(choice) {
-    var card = document.getElementById("saveChoiceCard");
-    var status = document.getElementById("saveChoiceStatus");
-    var saveButton = document.getElementById("saveResultBtn");
-    var skipButton = document.getElementById("skipSaveBtn");
-    trackEvent("save_choice", { choice: choice });
-
-    if (choice === "save") {
-      saveRetirementData();
-      if (card) card.classList.add("choice-made", "saved-choice");
-      if (status) status.textContent = "✅ 已儲存。下次回來可以直接繼續試算。";
-      if (saveButton) { saveButton.disabled = true; saveButton.textContent = "✓ 已儲存這次設定"; }
-      if (skipButton) skipButton.disabled = true;
-    } else {
-      try { localStorage.removeItem(STORAGE_KEY); } catch (error) {}
-      if (card) card.classList.add("choice-made", "skipped-choice");
-      if (status) status.textContent = "已選擇不留存。下次試算時重新填寫即可。";
-      if (skipButton) { skipButton.disabled = true; skipButton.textContent = "✓ 不需要儲存"; }
-      if (saveButton) saveButton.disabled = true;
-    }
-  }
-
   function showCalculationResult() {
     var dashboard = document.getElementById("resultDashboard");
     if (!dashboard) return;
@@ -255,9 +125,6 @@ document.addEventListener("DOMContentLoaded", function () {
     var progress = retirementTarget > 0 ? Math.min(projectedAtRetirement / retirementTarget * 100, 100) : 0;
     var retirementMet = projectedAtRetirement >= retirementTarget;
     var estimatedRetirementAge = getEstimatedRetirementAgeValue();
-
-    analyticsSessionCalculationCount += 1;
-    var calculationDuration = analyticsFormStartedAt ? Date.now() - analyticsFormStartedAt : 0;
 
     var snapshot = {
       timestamp: Date.now(),
@@ -304,36 +171,20 @@ document.addEventListener("DOMContentLoaded", function () {
     if (updatedElement) updatedElement.textContent = "剛剛更新";
 
     renderNextSteps(snapshot);
-    resetSaveChoiceUI();
     dashboard.classList.remove("hidden");
     dashboard.classList.add("is-visible");
-    analyticsResultShown = true;
-    analyticsFormStarted = false;
 
-    trackEvent("result_view", {
-      goal_type: data.goal,
-      calculation_index: analyticsSessionCalculationCount
-    });
-
+    trackEvent("result_view", { goal_type: data.goal });
+    trackEvent("save_choice_view", { goal_type: data.goal });
     setTimeout(function () {
       dashboard.scrollIntoView({ behavior: "smooth", block: "start" });
     }, 30);
   }
 
   function trackFieldInteraction(target) {
-    if (!target || !target.id) return;
-    analyticsLastFieldId = target.id;
-    var parentSection = target.closest(".card");
-    var heading = parentSection ? parentSection.querySelector("h2") : null;
-    if (heading) analyticsLastSection = heading.textContent.trim();
-    if (!analyticsFormStarted) {
-      analyticsFormStarted = true;
-      analyticsFormStartedAt = Date.now();
-      trackEvent("form_start", { field_id: target.id, section_name: analyticsLastSection || "unknown" });
-    }
-    if (trackedFields[target.id]) return;
+    if (!target || !target.id || trackedFields[target.id]) return;
     trackedFields[target.id] = true;
-    trackEvent("field_interaction", { field_id: target.id, section_name: analyticsLastSection || "unknown" });
+    trackEvent("field_interaction", { field_id: target.id });
   }
 
   function setupSectionTracking() {
@@ -347,7 +198,6 @@ document.addEventListener("DOMContentLoaded", function () {
         var sectionName = heading ? heading.textContent.trim() : "unknown";
         if (trackedSections[sectionName]) return;
         trackedSections[sectionName] = true;
-        analyticsLastSection = sectionName;
         trackEvent("section_view", { section_name: sectionName });
       });
     }, { threshold: [0.5] });
@@ -1909,9 +1759,6 @@ document.addEventListener("DOMContentLoaded", function () {
   document.addEventListener("input", function (event) {
     var target = event.target;
     trackFieldInteraction(target);
-    if (target.id === "monthlyInvestment") {
-      target.dataset.userSet = "yes";
-    }
     if (
       target.closest("#cashList") ||
       target.closest("#investmentList") ||
@@ -1977,30 +1824,12 @@ document.addEventListener("DOMContentLoaded", function () {
   var calculateButton = document.getElementById("calculateBtn");
   if (calculateButton) {
     calculateButton.addEventListener("click", function () {
-      var startedAt = Date.now();
-      var goalType = getActiveGoal();
-      var assetMode = getAssetInputMode();
-      var nextCalculationIndex = analyticsSessionCalculationCount + 1;
-      trackEvent("asset_input_complete", { asset_input_mode: assetMode, calculation_index: nextCalculationIndex });
-      trackEvent("calculation_start", { goal_type: goalType, asset_input_mode: assetMode, calculation_index: nextCalculationIndex });
+      trackEvent("calculation_start", { goal_type: getActiveGoal() });
       clearCalculationCache();
-      try {
-        updateAllRetirementCalculations();
-        finishCalculation();
-        trackEvent("calculation_complete", {
-          goal_type: goalType,
-          asset_input_mode: assetMode,
-          calculation_duration_ms: Date.now() - startedAt,
-          form_duration_ms: analyticsFormStartedAt ? Date.now() - analyticsFormStartedAt : 0,
-          last_section: analyticsLastSection || "unknown",
-          calculation_index: analyticsSessionCalculationCount + 1
-        });
-        showCalculationResult();
-      } catch (error) {
-        finishCalculation();
-        trackEvent("calculation_error", { goal_type: goalType, error_stage: "calculation" });
-        throw error;
-      }
+      updateAllRetirementCalculations();
+      finishCalculation();
+      trackEvent("calculation_complete", { goal_type: getActiveGoal() });
+      showCalculationResult();
     });
   }
 
@@ -2063,7 +1892,6 @@ document.addEventListener("DOMContentLoaded", function () {
     data.strategyCashReturn = getNumber("strategyCashReturn");
     data.strategyInvestmentReturn = getNumber("strategyInvestmentReturn");
     data.strategyDepositReturn = getNumber("strategyDepositReturn");
-    data.monthlyInvestmentUserSet = document.getElementById("monthlyInvestment") ? document.getElementById("monthlyInvestment").dataset.userSet === "yes" : false;
     data.goal = getActiveGoal();
     data.inheritancePlan = getActiveInheritancePlan();
     data.retirementLifestyle = getActiveRetirementLifestyle();
@@ -2128,12 +1956,10 @@ document.addEventListener("DOMContentLoaded", function () {
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
     } catch (error) {
-      var errorStatus = document.getElementById("saveChoiceStatus");
+      var errorStatus = document.getElementById("saveStatus");
       if (errorStatus) errorStatus.textContent = "⚠️ 無法儲存，請檢查瀏覽器設定";
       return;
     }
-    var saveStatus = document.getElementById("saveChoiceStatus");
-    if (saveStatus) saveStatus.textContent = "✅ 已儲存這次設定。下次回來可以直接繼續試算。";
   }
   /* =====================================================
      14. 載入儲存資料
@@ -2151,10 +1977,6 @@ document.addEventListener("DOMContentLoaded", function () {
       data = JSON.parse(saved);
     } catch (error) {
       return;
-    }
-    // v4.10.2：舊版的 20,000 元只是系統預設值，沒有明確使用者設定標記時不再沿用。
-    if (data.monthlyInvestment === 20000 && data.monthlyInvestmentUserSet !== true) {
-      data.monthlyInvestment = 0;
     }
     if (data.annualReturn !== undefined) {
       if (data.cashAnnualReturn === undefined) data.cashAnnualReturn = data.annualReturn;
@@ -2192,10 +2014,6 @@ document.addEventListener("DOMContentLoaded", function () {
       var element = document.getElementById(id);
       if (element && data[id] !== undefined) element.value = data[id];
     });
-    var monthlyInvestmentElement = document.getElementById("monthlyInvestment");
-    if (monthlyInvestmentElement) {
-      monthlyInvestmentElement.dataset.userSet = data.monthlyInvestmentUserSet === true ? "yes" : "no";
-    }
     if (data.cashAnnualReturn !== undefined) {
       var cashReturn = document.getElementById("cashAnnualReturn");
       if (cashReturn) cashReturn.value = data.cashAnnualReturn;
@@ -2256,33 +2074,38 @@ document.addEventListener("DOMContentLoaded", function () {
     }
     updateFxRateDisplay();
     updateAllRetirementCalculations();
+    var saveStatus = document.getElementById("saveStatus");
+    if (saveStatus) saveStatus.textContent = "📂 已自動載入上次儲存的資料";
   }
   /* =====================================================
-     15. 儲存 / 重設按鈕
+     15. 試算結果：儲存選擇
   ===================================================== */
-  var saveResultButton = document.getElementById("saveResultBtn");
+  var saveChoiceButton = document.getElementById("saveChoiceBtn");
   var skipSaveButton = document.getElementById("skipSaveBtn");
-  var resetButton = document.getElementById("resetBtn");
-  if (saveResultButton) {
-    saveResultButton.addEventListener("click", function () {
-      handleSaveChoice("save");
+  if (saveChoiceButton) {
+    saveChoiceButton.addEventListener("click", function () {
+      trackEvent("save_choice", { choice: "save" });
+      saveRetirementData();
+      var status = document.querySelector("#saveChoiceCard .save-choice-privacy");
+      if (status) status.textContent = "✅ 已儲存於你的瀏覽器；下次回來可以直接繼續試算。";
+      saveChoiceButton.classList.add("is-selected");
+      if (skipSaveButton) skipSaveButton.classList.remove("is-selected");
     });
   }
   if (skipSaveButton) {
     skipSaveButton.addEventListener("click", function () {
-      handleSaveChoice("skip");
+      trackEvent("save_choice", { choice: "skip" });
+      try {
+        localStorage.removeItem(STORAGE_KEY);
+      } catch (error) {
+        /* 無法清除時仍維持目前試算結果 */
+      }
+      var status = document.querySelector("#saveChoiceCard .save-choice-privacy");
+      if (status) status.textContent = "↩️ 不會保留這次設定；下次試算時重新填寫即可。";
+      skipSaveButton.classList.add("is-selected");
+      if (saveChoiceButton) saveChoiceButton.classList.remove("is-selected");
     });
   }
-  if (resetButton) {
-    resetButton.addEventListener("click", function () {
-      trackEvent("reset_plan");
-      try { localStorage.removeItem(STORAGE_KEY); } catch (error) {}
-      location.reload();
-    });
-  }
-  trackVisitType();
-  setupScrollDepthTracking();
-  setupExitTracking();
   setupSectionTracking();
 
   /* =====================================================

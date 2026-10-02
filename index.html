@@ -104,34 +104,21 @@
     <div class="save-choice-card" id="saveChoiceCard">
       <div class="dashboard-section-title">💾 要保留這次的設定嗎？</div>
       <p class="dashboard-section-subtitle">儲存後，下次回來可以直接繼續試算；不需要儲存也沒關係，下次重新填寫即可。</p>
-      <div class="save-choice-actions">
-        <button type="button" class="save-choice-btn primary" id="saveResultBtn">💾 儲存這次設定</button>
-        <button type="button" class="save-choice-btn secondary" id="skipSaveBtn">↩️ 不需要儲存</button>
+      <div class="save-choice-grid">
+        <button type="button" class="save-choice-item" id="saveChoiceBtn">
+          <span class="next-step-icon">💾</span>
+          <span><strong>儲存這次設定</strong><small>下次回來可以直接繼續試算</small></span>
+          <span class="next-step-arrow">›</span>
+        </button>
+        <button type="button" class="save-choice-item" id="skipSaveBtn">
+          <span class="next-step-icon">↩️</span>
+          <span><strong>不需要儲存</strong><small>下次想算時再重新填寫</small></span>
+          <span class="next-step-arrow">›</span>
+        </button>
       </div>
-      <div class="save-choice-note">🔒 資料僅儲存在你的瀏覽器，不會上傳至網站伺服器。</div>
-      <div class="save-choice-status" id="saveChoiceStatus" aria-live="polite"></div>
+      <div class="save-choice-privacy">🔒 資料僅儲存在你的瀏覽器，不會上傳至網站伺服器。</div>
     </div>
 
-    <div class="projection-result result-projection-card">
-      <div class="dashboard-section-title">📊 年齡資產軌跡</div>
-      <div class="form-grid projection-form">
-        <label>
-          <span>推估至幾歲？</span>
-          <input type="number" id="projectionEndAge" value="65" min="33" max="85">
-          <small>歲</small>
-          <em class="field-hint">只控制年齡軌跡顯示到幾歲，不代表持續投資到這個年齡</em>
-        </label>
-      </div>
-      <div class="projection-table">
-        <div class="projection-row header">
-          <span>年齡</span>
-          <span>預估資產</span>
-          <span>退休達成率</span>
-          <span>每月可動用</span>
-        </div>
-        <div id="projectionRows"></div>
-      </div>
-    </div>
   </section>
 
 
@@ -273,7 +260,7 @@
       </div>
     </div>
 
-    <div class="privacy-note">🔒 財務數字只用於瀏覽器內試算，不會上傳；儲存規劃與進度紀錄也只保留在目前裝置。</div>
+    <div class="privacy-note">🔒 財務數字只用於瀏覽器內試算，不會上傳。</div>
 
     <div class="asset-mode-switch" role="tablist" aria-label="資產填寫方式">
       <button type="button" class="asset-mode-btn active" data-asset-mode="strategy">
@@ -385,7 +372,7 @@
     <div class="asset-saving-plan">
       <label>
         <span>退休前每月新增投資</span>
-        <input type="number" id="monthlyInvestment" value="0" min="0" step="1000">
+        <input type="number" id="monthlyInvestment" value="20000" min="0" step="1000">
         <small>NT$ / 月</small>
       </label>
       <em>自動持續投入至設定的退休／FIRE年齡；退休後預設停止。</em>
@@ -558,19 +545,66 @@
   </section>
 
 
+  <!-- 05 年齡資產軌跡 -->
+  <section class="card" id="section05">
+
+    <div class="section-title">
+      <div class="section-number">05</div>
+
+      <div>
+        <h2>年齡資產軌跡</h2>
+        <p>看看未來不同年齡的資產與退休準備狀態</p>
+      </div>
+    </div>
+
+
+    <div class="form-grid projection-form">
+      <label>
+        <span>推估至幾歲？</span>
+        <input type="number" id="projectionEndAge" value="65" min="33" max="85">
+        <small>歲</small>
+        <em class="field-hint">只控制年齡軌跡顯示到幾歲，不代表持續投資到這個年齡</em>
+      </label>
+    </div>
+
+    <div class="projection-assumption-note">年報酬率已移到「02 我的資產」，會依現金、投資、定存分別套用。</div>
+
+    <div class="projection-result">
+
+      <div class="projection-main">
+        <span>🎯 目前退休目標</span>
+        <strong id="projectionRetirementTarget">NT$ 0</strong>
+        <div class="projection-target-note">依第 04 區目前設定的退休年齡、生活費與通膨率估算</div>
+      </div>
+
+      <div class="projection-table">
+        <div class="projection-row header">
+          <span>年齡</span>
+          <span>預估資產</span>
+          <span>退休達成率</span>
+          <span>每月可動用</span>
+        </div>
+        <div id="projectionRows"></div>
+      </div>
+
+    </div>
+
+  </section>
+
+
   <footer>
-    夠用就好試算結果僅供理財規畫參考，實際退休金給付制度仍依主管機關核定為準。
+    夠用就好｜試算結果僅供理財規畫參考，實際退休金給付制度仍依主管機關核定為準。
   </footer>
 
 </div>
 
-<!-- 浮動試算按鈕：輸入期間不重跑完整現金流，點擊後一次更新退休試算、年齡資產軌跡與勞退／勞保。 -->
+<!-- 浮動試算按鈕：輸入期間不重跑完整現金流，點擊後一次更新 04＋05＋勞退／勞保。 -->
 <div class="calculate-float-wrap">
   <span id="calculationStatus" class="calculation-status" aria-live="polite">資料已變更，點擊「試算」更新結果</span>
   <button type="button" id="calculateBtn" class="calculate-float-btn"><img src="./calculator-cat-icon.png" alt="" class="calculate-float-icon"><span>試算</span></button>
 </div>
 
-<script src="./script.js?v=4.11.0"></script>
+<script src="./script.js?v=4.11.1"></script>
 
 </body>
 </html>
