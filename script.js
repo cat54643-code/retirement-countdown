@@ -1732,19 +1732,18 @@ document.addEventListener("DOMContentLoaded", function () {
     var pensionBalanceData = getLaborPensionBalanceAtAge(claimAge, plannedRetirementAge);
     var balance = Math.max(pensionBalanceData.balance, 0);
 
-    var pensionElement = document.getElementById("laborPensionProjected");
-    if (pensionElement) pensionElement.textContent = formatNTD(balance);
-
+    // 退休後現金流仍使用勞退／勞保計算結果；不再於 04 區顯示容易造成誤解的「預估專戶／月領」結果卡。
     var insuranceMonthly = getLaborInsuranceMonthlyAtAge(
       Math.max(getNumber("laborInsuranceClaimAge"), 60),
       plannedRetirementAge
     );
-    var insuranceElement = document.getElementById("laborInsuranceMonthly");
-    if (insuranceElement) insuranceElement.textContent = formatNTD(insuranceMonthly);
-
-    var protectionElement = document.getElementById("retirementProtectionMonthly");
     var protectionMonthly = balance * 0.04 / 12 + insuranceMonthly;
-    if (protectionElement) protectionElement.textContent = formatNTD(protectionMonthly);
+    // 保留在函式內供共用現金流引擎使用。
+    laborPensionMonthlyCache = {
+      balance: balance,
+      insuranceMonthly: insuranceMonthly,
+      protectionMonthly: protectionMonthly
+    };
   }
   function updateCalculationNote() {
     var element = document.getElementById("calculationNoteText");

@@ -372,7 +372,7 @@
     <div class="asset-saving-plan">
       <label>
         <span>退休前每月新增投資</span>
-        <input type="number" id="monthlyInvestment" value="20000" min="0" step="1000">
+        <input type="number" id="monthlyInvestment" value="0" min="0" step="1000">
         <small>NT$ / 月</small>
       </label>
       <em>自動持續投入至設定的退休／FIRE年齡；退休後預設停止。</em>
@@ -529,12 +529,6 @@
         <label><span>預估勞保請領年齡</span><input type="number" id="laborInsuranceClaimAge" value="65" min="60" max="70"><small>歲</small></label>
       </div>
 
-      <div class="pension-result">
-        <div><span>預估勞退專戶</span><strong id="laborPensionProjected">NT$ 0</strong></div>
-        <div><span>勞保老年年金／月</span><strong id="laborInsuranceMonthly">NT$ 0</strong></div>
-        <div><span>兩者皆可請領後保障／月</span><strong id="retirementProtectionMonthly">NT$ 0</strong></div>
-      </div>
-
       <div class="pension-note">💡 勞退新制年滿 60 歲可請領；勞保老年年金自 2026 年起法定請領年齡為 65 歲，一般情況可提前最多 5 年請領，但每提前 1 年減給 4%。以上為規劃用估算值，實際金額應以勞保局個人試算結果為準。</div>
     </div>
 
@@ -604,7 +598,7 @@
   <button type="button" id="calculateBtn" class="calculate-float-btn"><img src="./calculator-cat-icon.png" alt="" class="calculate-float-icon"><span>試算</span></button>
 </div>
 
-<script src="./script.js?v=4.11.1"></script>
+<script src="./script.js?v=4.11.3"></script>
 
 </body>
 </html>
